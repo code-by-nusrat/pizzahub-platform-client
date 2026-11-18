@@ -22,11 +22,9 @@ const COLORS = {
   tomato: "#E8452C",
 }
 
-// Links everyone can see
-const links = [{ label: "Home", href: "/" }]
 
 // Links only for logged-in users (shown after Browse Menu)
-const userLinks = [{ label: "Dashboard", href: "/dashboard" }]
+// const userLinks = [{ label: "Dashboard", href: "/dashboard" }]
 
 // Dropdown categories
 const menuCategories = [
@@ -47,9 +45,8 @@ const mobileUnderline =
 function Underline({ active }: { active: boolean }) {
   return (
     <span
-      className={`absolute bottom-1 left-5 right-5 h-0.5 origin-left rounded-full transition-transform duration-300 ${
-        active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-      }`}
+      className={`absolute bottom-1 left-5 right-5 h-0.5 origin-left rounded-full transition-transform duration-300 ${active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+        }`}
       style={{ backgroundColor: COLORS.tomato }}
     />
   )
@@ -160,6 +157,9 @@ export default function Navbar({
   const displayName = user?.name || user?.email || "User"
   const firstName = displayName.split(" ")[0]
 
+  // Links everyone can see
+  const links = [{ label: "Home", href: "/" }, { label: "Dashboard", href: `/dashboard/${session?.user.role || "customer"}` }]
+
   // Check active route
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href)
@@ -228,7 +228,7 @@ export default function Navbar({
 
   // Sign out, then go back to the home page
   const handleSignOut = async () => {
-    
+
     setOpen(false)
     setUserOpen(false)
     await signOut()
@@ -238,14 +238,12 @@ export default function Navbar({
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full px-3 transition-all duration-300 sm:px-4 ${
-        scrolled ? "pt-2" : "pt-4"
-      }`}
+      className={`sticky top-0 z-50 w-full px-3 transition-all duration-300 sm:px-4 ${scrolled ? "pt-2" : "pt-4"
+        }`}
     >
       <nav
-        className={`mx-auto flex max-w-5xl items-center justify-between rounded-full border px-3 transition-all duration-300 sm:px-4 lg:px-6 ${
-          scrolled ? "h-14 shadow-xl backdrop-blur" : "h-16 shadow-lg"
-        }`}
+        className={`mx-auto flex max-w-5xl items-center justify-between rounded-full border px-3 transition-all duration-300 sm:px-4 lg:px-6 ${scrolled ? "h-14 shadow-xl backdrop-blur" : "h-16 shadow-lg"
+          }`}
         style={{
           backgroundColor: scrolled
             ? "rgba(255,248,236,0.92)"
@@ -286,9 +284,8 @@ export default function Navbar({
               Browse Menu
 
               <ChevronDown
-                className={`h-4 w-4 transition-transform duration-300 ${
-                  browseOpen ? "rotate-180" : ""
-                }`}
+                className={`h-4 w-4 transition-transform duration-300 ${browseOpen ? "rotate-180" : ""
+                  }`}
               />
 
               <Underline active={isActive("/menu")} />
@@ -333,7 +330,7 @@ export default function Navbar({
           </li>
 
           {/* Dashboard (only when logged in) */}
-          {user &&
+          {/* {user &&
             userLinks.map((link) => (
               <li key={link.href}>
                 <Link
@@ -345,7 +342,7 @@ export default function Navbar({
                   <Underline active={isActive(link.href)} />
                 </Link>
               </li>
-            ))}
+            ))} */}
         </ul>
 
         {/* Right side */}
@@ -375,9 +372,8 @@ export default function Navbar({
                 </span>
 
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform duration-300 ${
-                    userOpen ? "rotate-180" : ""
-                  }`}
+                  className={`h-4 w-4 transition-transform duration-300 ${userOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
 
@@ -485,9 +481,8 @@ export default function Navbar({
                     key={link.href}
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className={`rounded-full px-5 py-3 text-base font-semibold ${
-                      isActive(link.href) ? mobileUnderline : ""
-                    }`}
+                    className={`rounded-full px-5 py-3 text-base font-semibold ${isActive(link.href) ? mobileUnderline : ""
+                      }`}
                     style={
                       isActive(link.href) ? activeStyle : idleStyle
                     }
@@ -517,19 +512,17 @@ export default function Navbar({
                   </span>
 
                   <ChevronDown
-                    className={`h-5 w-5 transition-transform duration-300 ${
-                      mobileMenuOpen ? "rotate-180" : ""
-                    }`}
+                    className={`h-5 w-5 transition-transform duration-300 ${mobileMenuOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
                 {/* Mobile category list */}
                 <div
-                  className={`grid transition-all duration-300 ${
-                    mobileMenuOpen
+                  className={`grid transition-all duration-300 ${mobileMenuOpen
                       ? "grid-rows-[1fr] opacity-100"
                       : "grid-rows-[0fr] opacity-0"
-                  }`}
+                    }`}
                 >
                   <div className="overflow-hidden">
                     <div
@@ -566,22 +559,21 @@ export default function Navbar({
                 </div>
 
                 {/* Dashboard (only when logged in) */}
-                {user &&
+                {/* {user &&
                   userLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
                       onClick={() => setOpen(false)}
-                      className={`rounded-full px-5 py-3 text-base font-semibold ${
-                        isActive(link.href) ? mobileUnderline : ""
-                      }`}
+                      className={`rounded-full px-5 py-3 text-base font-semibold ${isActive(link.href) ? mobileUnderline : ""
+                        }`}
                       style={
                         isActive(link.href) ? activeStyle : idleStyle
                       }
                     >
                       {link.label}
                     </Link>
-                  ))}
+                  ))} */}
 
                 {/* Mobile auth buttons (only when logged out) */}
                 {!isPending && !user && (
