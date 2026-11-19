@@ -1,11 +1,15 @@
-import React from 'react';
+import MyMenuPage from "@/app/components/MymenuPage"
+import { getItems, type MenuItem } from "@/lib/vendor-menu-api"
 
-const MenuItemsPage = () => {
-    return (
-        <div>
-            <h2>My MenuItems</h2>
-        </div>
-    );
-};
+export default async function MyMenuItemsPage() {
+  let menu: MenuItem[]
 
-export default MenuItemsPage;
+  try {
+    menu = await getItems()
+  } catch (error) {
+    console.error("Failed to load menu:", error)
+    return <p className="p-6 text-red-500">Could not load menu items.</p>
+  }
+
+  return <MyMenuPage initialItems={menu} />
+}
