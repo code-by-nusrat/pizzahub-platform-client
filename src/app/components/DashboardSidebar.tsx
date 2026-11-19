@@ -204,7 +204,7 @@ export function DashboardSidebar() {
                         <SidebarMenuButton
                             tooltip="Profile settings"
                             className={footerButtonClass}
-                            render={<Link href="/profile" />}
+                            render={<Link href="/dashboard/profile" />}
                         >
                             <Settings />
                             <span>Profile settings</span>
