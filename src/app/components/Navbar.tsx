@@ -22,19 +22,6 @@ const COLORS = {
   tomato: "#E8452C",
 }
 
-
-// Links only for logged-in users (shown after Browse Menu)
-// const userLinks = [{ label: "Dashboard", href: "/dashboard" }]
-
-// Dropdown categories
-const menuCategories = [
-  { label: "Classic Pizzas", emoji: "🍕", href: "/menu?category=classic" },
-  { label: "Veggie Pizzas", emoji: "🥬", href: "/menu?category=veggie" },
-  { label: "Meat Lovers", emoji: "🍖", href: "/menu?category=meat" },
-  { label: "Spicy Pizzas", emoji: "🌶️", href: "/menu?category=spicy" },
-  { label: "Drinks & Sides", emoji: "🥤", href: "/menu?category=drinks" },
-]
-
 const activeStyle = { color: COLORS.green }
 const idleStyle = { color: COLORS.ink }
 
@@ -131,8 +118,6 @@ export default function Navbar({
   const router = useRouter()
 
   const [open, setOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [browseOpen, setBrowseOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [previousPathname, setPreviousPathname] = useState(pathname)
@@ -141,13 +126,10 @@ export default function Navbar({
   if (previousPathname !== pathname) {
     setPreviousPathname(pathname)
     setOpen(false)
-    setMobileMenuOpen(false)
-    setBrowseOpen(false)
     setUserOpen(false)
   }
 
-  // Refs let us detect clicks outside a dropdown so it can close
-  const browseRef = useRef<HTMLLIElement>(null)
+  // Ref lets us detect clicks outside the user dropdown so it can close
   const userRef = useRef<HTMLDivElement>(null)
 
   // Logged in user info
@@ -157,8 +139,15 @@ export default function Navbar({
   const displayName = user?.name || user?.email || "User"
   const firstName = displayName.split(" ")[0]
 
-  // Links everyone can see
-  const links = [{ label: "Home", href: "/" }, { label: "Dashboard", href: `/dashboard/${session?.user.role || "customer"}` }]
+  // Navigation links
+  const links = [
+    { label: "Home", href: "/" },
+    { label: "Browse Menu", href: "/browse-menu" },
+    {
+      label: "Dashboard",
+      href: `/dashboard/${session?.user.role || "customer"}`,
+    },
+  ]
 
   // Check active route
   const isActive = (href: string) =>
@@ -188,22 +177,16 @@ export default function Navbar({
     return () => window.removeEventListener("resize", onResize)
   }, [])
 
-  // Close dropdowns when clicking outside them or pressing Escape
+  // Close the user dropdown when clicking outside it or pressing Escape
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node
-
-      if (browseRef.current && !browseRef.current.contains(target)) {
-        setBrowseOpen(false)
-      }
-      if (userRef.current && !userRef.current.contains(target)) {
+      if (userRef.current && !userRef.current.contains(e.target as Node)) {
         setUserOpen(false)
       }
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setBrowseOpen(false)
         setUserOpen(false)
       }
     }
@@ -220,15 +203,12 @@ export default function Navbar({
   // Navigate and close menus
   const go = (href: string) => {
     setOpen(false)
-    setMobileMenuOpen(false)
-    setBrowseOpen(false)
     setUserOpen(false)
     router.push(href)
   }
 
   // Sign out, then go back to the home page
   const handleSignOut = async () => {
-
     setOpen(false)
     setUserOpen(false)
     await signOut()
@@ -271,78 +251,6 @@ export default function Navbar({
               </Link>
             </li>
           ))}
-
-          {/* Browse Menu dropdown */}
-          <li className="relative" ref={browseRef}>
-            <button
-              type="button"
-              onClick={() => setBrowseOpen((value) => !value)}
-              aria-expanded={browseOpen}
-              className="group relative flex items-center gap-1 rounded-full px-5 py-2 text-sm font-semibold outline-none transition"
-              style={isActive("/menu") ? activeStyle : idleStyle}
-            >
-              Browse Menu
-
-              <ChevronDown
-                className={`h-4 w-4 transition-transform duration-300 ${browseOpen ? "rotate-180" : ""
-                  }`}
-              />
-
-              <Underline active={isActive("/menu")} />
-            </button>
-
-            {browseOpen && (
-              <div
-                className="absolute left-1/2 top-full z-50 mt-2 w-[80px] -translate-x-1/2 rounded-lg border p-1 shadow-xl lg:w-56"
-                style={{
-                  backgroundColor: COLORS.cream,
-                  borderColor: "rgba(31,42,31,0.1)",
-                  color: COLORS.ink,
-                }}
-              >
-                {menuCategories.map((item) => (
-                  <button
-                    key={item.href}
-                    type="button"
-                    onClick={() => go(item.href)}
-                    className="flex w-full flex-col items-center gap-1 rounded-md px-1 py-2 text-center text-[9px] font-medium leading-tight transition hover:bg-[#2F6B3A]/10 lg:flex-row lg:gap-3 lg:px-3 lg:py-2.5 lg:text-left lg:text-sm"
-                  >
-                    <span className="text-base lg:text-lg">
-                      {item.emoji}
-                    </span>
-
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-
-                <div className="my-1 border-t border-black/10" />
-
-                <button
-                  type="button"
-                  onClick={() => go("/menu")}
-                  className="w-full rounded-md px-1 py-2 text-center text-[9px] font-bold leading-tight transition hover:bg-[#2F6B3A]/10 lg:px-3 lg:py-2.5 lg:text-sm"
-                  style={{ color: COLORS.green }}
-                >
-                  View full menu →
-                </button>
-              </div>
-            )}
-          </li>
-
-          {/* Dashboard (only when logged in) */}
-          {/* {user &&
-            userLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="group relative block rounded-full px-5 py-2 text-sm font-semibold transition"
-                  style={isActive(link.href) ? activeStyle : idleStyle}
-                >
-                  {link.label}
-                  <Underline active={isActive(link.href)} />
-                </Link>
-              </li>
-            ))} */}
         </ul>
 
         {/* Right side */}
@@ -475,7 +383,6 @@ export default function Navbar({
               </SheetTitle>
 
               <div className="mt-6 flex flex-col gap-2">
-                {/* Home link */}
                 {links.map((link) => (
                   <Link
                     key={link.href}
@@ -490,90 +397,6 @@ export default function Navbar({
                     {link.label}
                   </Link>
                 ))}
-
-                {/* Mobile Browse Menu */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setMobileMenuOpen((value) => !value)
-                  }
-                  aria-expanded={mobileMenuOpen}
-                  className="flex w-full items-center justify-between rounded-full px-5 py-3 text-base font-semibold"
-                  style={
-                    isActive("/menu") ? activeStyle : idleStyle
-                  }
-                >
-                  <span
-                    className={
-                      isActive("/menu") ? mobileUnderline : ""
-                    }
-                  >
-                    Browse Menu
-                  </span>
-
-                  <ChevronDown
-                    className={`h-5 w-5 transition-transform duration-300 ${mobileMenuOpen ? "rotate-180" : ""
-                      }`}
-                  />
-                </button>
-
-                {/* Mobile category list */}
-                <div
-                  className={`grid transition-all duration-300 ${mobileMenuOpen
-                      ? "grid-rows-[1fr] opacity-100"
-                      : "grid-rows-[0fr] opacity-0"
-                    }`}
-                >
-                  <div className="overflow-hidden">
-                    <div
-                      className="ml-6 mt-1 flex flex-col gap-1 border-l-2 pl-3"
-                      style={{
-                        borderColor: "rgba(47,107,58,0.3)",
-                      }}
-                    >
-                      {menuCategories.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setOpen(false)}
-                          className="flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium hover:bg-black/5"
-                        >
-                          <span className="text-lg">
-                            {item.emoji}
-                          </span>
-
-                          {item.label}
-                        </Link>
-                      ))}
-
-                      <Link
-                        href="/menu"
-                        onClick={() => setOpen(false)}
-                        className="rounded-full px-4 py-2.5 text-sm font-bold hover:bg-black/5"
-                        style={{ color: COLORS.green }}
-                      >
-                        View full menu →
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dashboard (only when logged in) */}
-                {/* {user &&
-                  userLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setOpen(false)}
-                      className={`rounded-full px-5 py-3 text-base font-semibold ${isActive(link.href) ? mobileUnderline : ""
-                        }`}
-                      style={
-                        isActive(link.href) ? activeStyle : idleStyle
-                      }
-                    >
-                      {link.label}
-                    </Link>
-                  ))} */}
 
                 {/* Mobile auth buttons (only when logged out) */}
                 {!isPending && !user && (

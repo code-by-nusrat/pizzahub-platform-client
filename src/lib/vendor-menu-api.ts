@@ -31,8 +31,8 @@ export type NewItemPayload = {
 }
 
 // Get all menu items
-export async function getItems(): Promise<MenuItem[]> {
-  const res = await fetch(`${BASE_URL}/menu`, { cache: "no-store" })
+export async function getItems(query:string =""): Promise<MenuItem[]> {
+  const res = await fetch(`${BASE_URL}/menu?${query}`, { cache: "no-store" })
 
   if (!res.ok) throw new Error("Failed to load menu items")
 
