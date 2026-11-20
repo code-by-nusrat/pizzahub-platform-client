@@ -218,7 +218,7 @@ export default function Navbar({
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full px-3 transition-all duration-300 sm:px-4 ${scrolled ? "pt-2" : "pt-4"
+      className={`sticky top-0 z-50 w-full px-3 transition-all mb-5 duration-300 sm:px-4 ${scrolled ? "pt-2" : "pt-4"
         }`}
     >
       <nav

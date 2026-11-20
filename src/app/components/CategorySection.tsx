@@ -18,48 +18,48 @@ const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
 // `label` is what customers see.
 // `query` must match the category saved on your menu items, because
-// the menu API filters by it (for example /menu?category=Veggie%20Pizzas).
+// the browse page filters by it (for example /browse-menu?category=Pizza).
 const categories = [
   {
-    label: "Classic Pizzas",
-    query: "Classic Pizzas",
+    label: "Pizza",
+    query: "Pizza",
     emoji: "🍕",
-    blurb: "Margherita, pepperoni and the timeless favorites.",
+    blurb: "Stone-baked pies with your favourite toppings.",
     color: "#E8452C",
   },
   {
-    label: "Vegetarian Pizzas",
-    query: "Veggie Pizzas",
-    emoji: "🥬",
-    blurb: "Fresh vegetables, herbs and plenty of cheese.",
-    color: "#6FAF4B",
-  },
-  {
-    label: "Meat Lovers",
-    query: "Meat Lovers",
-    emoji: "🍖",
-    blurb: "Loaded with chicken, beef and sausage.",
+    label: "Burgers",
+    query: "Burger",
+    emoji: "🍔",
+    blurb: "Stacked patties, fresh buns and crunchy veg.",
     color: "#B8401F",
   },
   {
-    label: "Specialty / Gourmet",
-    query: "Spicy Pizzas",
-    emoji: "🔥",
-    blurb: "Bold chef-style recipes with a kick.",
-    color: "#F2751A",
-  },
-  {
-    label: "Sides & Appetizers",
-    query: "Drinks & Sides",
-    emoji: "🍟",
-    blurb: "Crispy starters to share while you wait.",
+    label: "Pasta",
+    query: "Pasta",
+    emoji: "🍝",
+    blurb: "Creamy, saucy bowls made to order.",
     color: "#E9A92B",
   },
   {
-    label: "Beverages & Desserts",
+    label: "Sides",
+    query: "Sides",
+    emoji: "🍟",
+    blurb: "Crispy starters to share while you wait.",
+    color: "#6FAF4B",
+  },
+  {
+    label: "Desserts",
+    query: "Dessert",
+    emoji: "🍰",
+    blurb: "Sweet finishes to round off your meal.",
+    color: "#F2751A",
+  },
+  {
+    label: "Drinks",
     query: "Drinks",
     emoji: "🥤",
-    blurb: "Cold drinks and sweet finishes.",
+    blurb: "Cold drinks and refreshing sips.",
     color: "#8A5530",
   },
 ]
@@ -102,7 +102,8 @@ const slices = categories.map((category, i) => {
   }
 })
 
-const hrefFor = (query: string) => `/menu?category=${encodeURIComponent(query)}`
+const hrefFor = (query: string) =>
+  `/browse-menu?category=${encodeURIComponent(query)}`
 
 const CategorySection = () => {
   return (

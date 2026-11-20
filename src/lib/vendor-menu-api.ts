@@ -72,13 +72,13 @@ export function changeAvailability(id: string, isAvailable: boolean) {
   )
 }
 // Server-side fetch of the logged-in vendor's items
+// `approvalStatus=all` lets the vendor see pending and rejected items too.
 export async function getItems(businessName?: string): Promise<MenuItem[]> {
-  const query = businessName
-    ? `?businessName=${encodeURIComponent(businessName)}`
-    : ""
+  const query = new URLSearchParams({ approvalStatus: "all" })
+  if (businessName) query.set("businessName", businessName)
 
   const data = await request(
-    `${BASE_URL}/menu${query}`,
+    `${BASE_URL}/menu?${query.toString()}`,
     { cache: "no-store" },
     "Failed to load menu items"
   )

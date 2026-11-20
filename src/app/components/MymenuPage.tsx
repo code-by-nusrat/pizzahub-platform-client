@@ -65,7 +65,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import Navbar from "./Navbar"
 
 // Turns a saved image value into a full URL.
 // Full links are used as they are; paths like "/uploads/pizza.jpg" are loaded from your backend.
@@ -108,6 +107,13 @@ type EditForm = {
   price: string
   location: string
   description: string
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  all: "All Items",
+  approved: "Approved",
+  pending: "Pending",
+  rejected: "Rejected",
 }
 
 const emptyForm: EditForm = {
@@ -261,7 +267,7 @@ export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
 
   return (
     <div className="min-h-screen space-y-6 bg-[#FFF8EC] p-4 sm:p-6">
-      <Navbar></Navbar>
+     
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 rounded-2xl bg-linear-to-r from-[#E8452C] to-[#F2751A] p-6 text-white sm:flex-row sm:items-center">
         <div>
@@ -321,7 +327,9 @@ export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
           }}
         >
           <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Filter status" />
+            <SelectValue placeholder="Filter status">
+              {(value) => STATUS_LABELS[String(value)] ?? "All Items"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Items</SelectItem>

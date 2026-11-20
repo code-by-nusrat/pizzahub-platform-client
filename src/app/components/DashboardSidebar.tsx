@@ -58,7 +58,7 @@ const menuItemsByRole: Record<Role, DashboardMenuItem[]> = {
         { id: "vendor-menu-items", name: "My Menu Items", url: "/dashboard/vendor/menu", icon: UtensilsCrossed },
         { id: "vendor-add-menu-item", name: "Add Menu Item", url: "/dashboard/vendor/menu/new", icon: CirclePlus },
         { id: "vendor-customer-orders", name: "Customer Orders", url: "/dashboard/orders", icon: ClipboardList },
-        { id: "vendor-subscription", name: "Subscription", url: "/dashboard/subscription", icon: Sparkles },
+        { id: "vendor-subscription", name: "Subscription", url: "/dashboard/vendor/subscription", icon: Sparkles },
     ],
 
     customer: [

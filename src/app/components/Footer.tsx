@@ -68,12 +68,12 @@ function SocialIcon({ name }: { name: SocialName }) {
 
 // Same categories as the homepage category section
 const menuLinks = [
-  { label: "Classic Pizzas", query: "Classic Pizzas" },
-  { label: "Vegetarian Pizzas", query: "Veggie Pizzas" },
-  { label: "Meat Lovers", query: "Meat Lovers" },
-  { label: "Specialty / Gourmet", query: "Spicy Pizzas" },
-  { label: "Sides & Appetizers", query: "Drinks & Sides" },
-  { label: "Beverages & Desserts", query: "Drinks" },
+  { label: "Pizza", query: "Pizza" },
+  { label: "Burgers", query: "Burger" },
+  { label: "Pasta", query: "Pasta" },
+  { label: "Sides", query: "Sides" },
+  { label: "Desserts", query: "Dessert" },
+  { label: "Drinks", query: "Drinks" },
 ]
 
 const exploreLinks = [
@@ -166,7 +166,7 @@ const Footer = () => {
                 {menuLinks.map((item) => (
                   <li key={item.query}>
                     <Link
-                      href={`/menu?category=${encodeURIComponent(item.query)}`}
+                      href={`/browse-menu?category=${encodeURIComponent(item.query)}`}
                       className={linkClass}
                     >
                       {item.label}
