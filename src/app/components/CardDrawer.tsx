@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -17,7 +18,6 @@ import { Bricolage_Grotesque } from "next/font/google"
 
 import { useCart } from "../../lib/cart"
 import { useSession } from "@/lib/auth-client"
-import { placeOrder } from "@/lib/actions/order"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -28,8 +28,16 @@ type Panel = "none" | "note" | "delivery"
 type Errors = { date?: string; address?: string }
 
 export default function CartDrawer() {
-  const { items, subtotal, isOpen, closeCart, setQuantity, removeItem } =
-    useCart()
+  const {
+    items,
+    subtotal,
+    isOpen,
+    closeCart,
+    setQuantity,
+    removeItem,
+    setCheckoutDetails,
+  } = useCart()
+
   const router = useRouter()
   const pathname = usePathname()
   const { data: session } = useSession()
@@ -40,27 +48,30 @@ export default function CartDrawer() {
   const [date, setDate] = useState("")
   const [address, setAddress] = useState("")
   const [errors, setErrors] = useState<Errors>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState("")
   const [done, setDone] = useState(false)
 
-  // Earliest delivery date = today (computed in the browser)
   const [today, setToday] = useState("")
+
+  // Calculate today's date
   useEffect(() => {
     queueMicrotask(() => {
       const d = new Date()
       const pad = (n: number) => String(n).padStart(2, "0")
-      setToday(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+
+      setToday(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+      )
     })
   }, [])
 
-  // While the drawer is open: Esc closes it and the page behind it stops scrolling
+  // Close drawer using Escape and prevent background scrolling
   useEffect(() => {
     if (!isOpen) return
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeCart()
     }
+
     document.addEventListener("keydown", onKey)
 
     const previous = document.body.style.overflow
@@ -74,65 +85,48 @@ export default function CartDrawer() {
 
   function handleClose() {
     closeCart()
-    // Forget the "orders placed" screen once the drawer has slid away
     setTimeout(() => setDone(false), 300)
   }
 
-  async function handleCheckout() {
-    if (submitting || items.length === 0) return
+  function handleCheckout() {
+    if (items.length === 0) return
 
-    // Ordering needs an account; come back to this page after signing in
     if (!user) {
       handleClose()
-      router.push(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`)
+      router.push(
+        `/sign-in?callbackUrl=${encodeURIComponent(pathname)}`
+      )
       return
     }
 
     const next: Errors = {}
-    if (!date) next.date = "Choose a delivery date."
-    else if (today && date < today) next.date = "Date cannot be in the past."
-    if (address.trim().length < 5) next.address = "Enter your delivery address."
+
+    if (!date) {
+      next.date = "Choose a delivery date."
+    } else if (today && date < today) {
+      next.date = "Date cannot be in the past."
+    }
+
+    if (address.trim().length < 5) {
+      next.address = "Enter your delivery address."
+    }
 
     setErrors(next)
+
     if (Object.keys(next).length > 0) {
       setPanel("delivery")
       return
     }
 
-    setSubmitError("")
-    setSubmitting(true)
+    // Save all checkout information before navigating
+    setCheckoutDetails({
+      date,
+      address: address.trim(),
+      note: note.trim(),
+    })
 
-    try {
-      // One order per dish. Dishes that go through are removed from the cart,
-      // so if one fails the rest stay and can be tried again.
-      for (const item of [...items]) {
-        const result = (await placeOrder({
-          menuId: item.menuId,
-          quantity: item.quantity,
-          deliveryDate: date,
-          address: address.trim(),
-          notes: note.trim(),
-          userId: user.id,
-          email: user.email,
-        })) as { insertedId?: string; message?: string }
-
-        if (!result?.insertedId) {
-          setSubmitError(
-            `${item.name}: ${result?.message || "could not be ordered."}`
-          )
-          return
-        }
-
-        removeItem(item.menuId)
-      }
-
-      setNote("")
-      setDone(true)
-    } catch {
-      setSubmitError("Could not reach the server. Please try again.")
-    } finally {
-      setSubmitting(false)
-    }
+    closeCart()
+    router.push("/payment")
   }
 
   const showSuccess = done && items.length === 0
@@ -140,12 +134,14 @@ export default function CartDrawer() {
 
   return (
     <>
-      {/* Dimmed page behind the drawer */}
+      {/* Dimmed background */}
       <div
         aria-hidden
         onClick={handleClose}
         className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
-          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          isOpen
+            ? "opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
       />
 
@@ -155,7 +151,9 @@ export default function CartDrawer() {
         aria-label="Shopping cart"
         aria-hidden={!isOpen}
         className={`fixed right-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col bg-white shadow-2xl transition-[transform,visibility] duration-300 ${
-          isOpen ? "visible translate-x-0" : "invisible translate-x-full"
+          isOpen
+            ? "visible translate-x-0"
+            : "invisible translate-x-full"
         }`}
       >
         {/* Header */}
@@ -165,6 +163,7 @@ export default function CartDrawer() {
           >
             Shopping cart
           </h2>
+
           <button
             type="button"
             aria-label="Close cart"
@@ -182,15 +181,18 @@ export default function CartDrawer() {
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E8452C] text-white">
                 <Check className="h-7 w-7" />
               </span>
+
               <h3
                 className={`${display.className} mt-4 text-2xl font-extrabold text-[#2B1B14]`}
               >
                 Orders placed
               </h3>
+
               <p className="mt-2 text-sm text-[#7A6258]">
                 The kitchens have your orders. You can follow them on your
                 orders page.
               </p>
+
               <Link
                 href="/my-orders"
                 onClick={handleClose}
@@ -206,14 +208,17 @@ export default function CartDrawer() {
               <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E8452C]/10 text-[#E8452C]">
                 <ShoppingBag className="h-7 w-7" />
               </span>
+
               <h3
                 className={`${display.className} mt-4 text-2xl font-extrabold text-[#2B1B14]`}
               >
                 Your cart is empty
               </h3>
+
               <p className="mt-2 text-sm text-[#7A6258]">
                 Add a dish from the menu and it will show up here.
               </p>
+
               <Link
                 href="/browse-menu"
                 onClick={handleClose}
@@ -227,10 +232,12 @@ export default function CartDrawer() {
           {items.length > 0 && (
             <ul className="divide-y divide-[#2B1B14]/10">
               {items.map((item) => (
-                <li key={item.menuId} className="relative flex gap-4 px-6 py-5">
+                <li
+                  key={item.menuId}
+                  className="relative flex gap-4 px-6 py-5"
+                >
                   <div className="h-20 w-20 shrink-0 overflow-hidden bg-[#FFF1DD]">
                     {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.image}
                         alt={item.name}
@@ -249,11 +256,13 @@ export default function CartDrawer() {
                     >
                       {item.name}
                     </h3>
+
                     {item.businessName && (
                       <p className="truncate text-xs text-[#7A6258]">
                         {item.businessName}
                       </p>
                     )}
+
                     <p className="mt-1 text-sm text-[#7A6258]">
                       ৳{item.price.toFixed(2)}
                     </p>
@@ -263,22 +272,28 @@ export default function CartDrawer() {
                         type="button"
                         aria-label={`Decrease ${item.name}`}
                         disabled={item.quantity <= 1}
-                        onClick={() => setQuantity(item.menuId, item.quantity - 1)}
+                        onClick={() =>
+                          setQuantity(item.menuId, item.quantity - 1)
+                        }
                         className="flex h-8 w-8 items-center justify-center text-[#2B1B14] transition-colors hover:bg-[#FFE9CC] disabled:opacity-30"
                       >
                         <Minus className="h-3.5 w-3.5" />
                       </button>
+
                       <span
                         aria-live="polite"
                         className="flex h-8 w-10 items-center justify-center border-x border-[#2B1B14]/30 text-sm font-semibold text-[#2B1B14]"
                       >
                         {item.quantity}
                       </span>
+
                       <button
                         type="button"
                         aria-label={`Increase ${item.name}`}
                         disabled={item.quantity >= 20}
-                        onClick={() => setQuantity(item.menuId, item.quantity + 1)}
+                        onClick={() =>
+                          setQuantity(item.menuId, item.quantity + 1)
+                        }
                         className="flex h-8 w-8 items-center justify-center text-[#2B1B14] transition-colors hover:bg-[#FFE9CC] disabled:opacity-30"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -307,10 +322,13 @@ export default function CartDrawer() {
             <div className="grid grid-cols-2 gap-2">
               <PanelButton
                 active={panel === "note"}
-                onClick={() => setPanel(panel === "note" ? "none" : "note")}
+                onClick={() =>
+                  setPanel(panel === "note" ? "none" : "note")
+                }
                 icon={<ClipboardList className="h-6 w-6" />}
                 label="Add note"
               />
+
               <PanelButton
                 active={panel === "delivery"}
                 onClick={() =>
@@ -322,6 +340,7 @@ export default function CartDrawer() {
               />
             </div>
 
+            {/* Kitchen note */}
             {panel === "note" && (
               <textarea
                 aria-label="Note for the kitchen"
@@ -333,6 +352,7 @@ export default function CartDrawer() {
               />
             )}
 
+            {/* Delivery information */}
             {panel === "delivery" && (
               <div className="mt-4 space-y-3">
                 <div>
@@ -342,6 +362,7 @@ export default function CartDrawer() {
                   >
                     Delivery date
                   </label>
+
                   <input
                     id="cart-date"
                     type="date"
@@ -351,6 +372,7 @@ export default function CartDrawer() {
                     aria-invalid={Boolean(errors.date)}
                     className={field}
                   />
+
                   {errors.date && (
                     <p className="mt-1 text-xs font-medium text-[#C2331B]">
                       {errors.date}
@@ -365,6 +387,7 @@ export default function CartDrawer() {
                   >
                     Delivery address
                   </label>
+
                   <input
                     id="cart-address"
                     type="text"
@@ -375,6 +398,7 @@ export default function CartDrawer() {
                     aria-invalid={Boolean(errors.address)}
                     className={field}
                   />
+
                   {errors.address && (
                     <p className="mt-1 text-xs font-medium text-[#C2331B]">
                       {errors.address}
@@ -386,34 +410,28 @@ export default function CartDrawer() {
 
             {/* Subtotal */}
             <div className="mt-5 flex items-end justify-between border-t border-[#2B1B14]/10 pt-4">
-              <span className="text-lg text-[#7A6258]">Subtotal</span>
+              <span className="text-lg text-[#7A6258]">
+                Subtotal
+              </span>
+
               <span
                 className={`${display.className} text-2xl font-extrabold text-[#2B1B14]`}
               >
                 ৳{subtotal.toFixed(2)}
               </span>
             </div>
+
             <p className="mt-2 text-sm text-[#7A6258]">
               Add your delivery details, then check out.
             </p>
-
-            {submitError && (
-              <p
-                role="alert"
-                className="mt-4 bg-[#E8452C]/10 px-4 py-3 text-sm font-medium text-[#C2331B]"
-              >
-                {submitError}
-              </p>
-            )}
 
             <div className="mt-5 space-y-3">
               <button
                 type="button"
                 onClick={handleCheckout}
-                disabled={submitting}
-                className="h-12 w-full bg-[#E8452C] text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#C2331B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2B1B14] disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-12 w-full bg-[#E8452C] text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#C2331B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2B1B14]"
               >
-                {submitting ? "Placing orders..." : "Check out"}
+                Check out
               </button>
 
               <button
