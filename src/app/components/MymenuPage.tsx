@@ -454,7 +454,7 @@ export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">Item Name</Label>
               <Input
                 id="edit-name"
                 value={form.name}
@@ -474,9 +474,10 @@ export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-location">Location</Label>
+              <Label htmlFor="edit-location">Location (area / city)</Label>
               <Input
                 id="edit-location"
+                placeholder="Dhanmondi, Dhaka"
                 value={form.location}
                 onChange={(e) =>
                   setForm({ ...form, location: e.target.value })

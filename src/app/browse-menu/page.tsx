@@ -1,20 +1,25 @@
-import React from 'react';
+import BrowseMenu from "@/app/components/BrowseMenu"
 
-const BrowseJobPage = async ({
-    searchParams,
+type SearchParams = Record<string, string | string[] | undefined>
+
+const first = (v: string | string[] | undefined) =>
+  (Array.isArray(v) ? v[0] : v)?.trim() ?? ""
+
+export default async function BrowseMenuPage({
+  searchParams,
 }: {
-    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}) => {
-    const search = await searchParams;
+  searchParams: Promise<SearchParams>
+}) {
+  const params = await searchParams
 
-    const urlSearch = new URLSearchParams(search as Record<string, string>)
-    const query = urlSearch.toString();
-    console.log('searchParams', query)
-    return (
-        <div>
-            <h1>Browse menu</h1>
-        </div>
-    );
-};
-
-export default BrowseJobPage;
+  return (
+    <BrowseMenu
+      initial={{
+        // ?search=sides (also accepts the old ?name=sides)
+        name: first(params.search) || first(params.name),
+        category: first(params.category),
+        location: first(params.location),
+      }}
+    />
+  )
+}
