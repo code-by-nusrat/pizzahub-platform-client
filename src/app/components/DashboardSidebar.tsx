@@ -1,10 +1,13 @@
 "use client"
 
-// PizzaHub dashboard sidebar: floating card style
+// PizzaHub dashboard sidebar: floating card style.
 // Needs the shadcn sidebar:  npx shadcn@latest add sidebar
-// Use it inside <SidebarProvider>, and pass the server session as initialUser
-// so the correct role shows on the very first paint (no "Customer" flash).
+// Rendered inside <SidebarProvider> by src/app/dashboard/layout.tsx, which
+// passes the server session as initialUser so the right role shows immediately.
+//
+// KEEP ONLY ONE COPY of this file in the project.
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -33,7 +36,6 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from "@/components/ui/sidebar"
-// If your auth-client does not export signOut, use: authClient.signOut()
 import { useSession, signOut } from "@/lib/auth-client"
 
 // 1) Roles and menu item shape
@@ -49,16 +51,16 @@ type DashboardMenuItem = {
 export type SidebarUser = {
     name?: string | null
     email?: string | null
-    role?: string
+    role?: string | null
 }
 
-// 2) Menu items for each role
+// 2) Menu items for each role.
+// Every url must match a real folder under src/app/dashboard.
 const menuItemsByRole: Record<Role, DashboardMenuItem[]> = {
     vendor: [
-        { id: "vendor-overview", name: "Overview", url: "/dashboard/vendor", icon: LayoutDashboard },
+        { id: "vendor-overview", name: "Overview", url: "/dashboard/vendor/overview", icon: LayoutDashboard },
         { id: "vendor-menu-items", name: "My Menu Items", url: "/dashboard/vendor/menu", icon: UtensilsCrossed },
         { id: "vendor-add-menu-item", name: "Add Menu Item", url: "/dashboard/vendor/menu/new", icon: CirclePlus },
-        // Folder is src/app/dashboard/order (singular), so the URL must match
         { id: "vendor-customer-orders", name: "Customer Orders", url: "/dashboard/order", icon: ClipboardList },
         { id: "vendor-subscription", name: "Subscription", url: "/dashboard/vendor/subscription", icon: Sparkles },
     ],
@@ -69,11 +71,18 @@ const menuItemsByRole: Record<Role, DashboardMenuItem[]> = {
     ],
 
     admin: [
-        { id: "admin-overview", name: "Overview", url: "/dashboard", icon: LayoutDashboard },
-        { id: "admin-users", name: "Manage Users", url: "/dashboard/users", icon: Users },
-        { id: "admin-vendors", name: "Manage Menu Items", url: "/dashboard/vendors", icon: Store },
-        { id: "admin-orders", name: "Transactions", url: "/dashboard/transactions", icon: ClipboardList },
+        { id: "admin-overview", name: "Overview", url: "/dashboard/admin/overview", icon: LayoutDashboard },
+        { id: "admin-users", name: "Manage Users", url: "/dashboard/admin/manage-users", icon: Users },
+        { id: "admin-vendors", name: "Manage Menu Items", url: "/dashboard/admin/manage-items", icon: Store },
+        { id: "admin-orders", name: "Transactions", url: "/dashboard/admin/transactions", icon: ClipboardList },
     ],
+}
+
+// Where "Profile settings" goes for each role
+const profileUrlByRole: Record<Role, string> = {
+    vendor: "/dashboard/vendor/profile",
+    customer: "/dashboard/customer/profile",
+    admin: "/dashboard/profile",
 }
 
 // 3) Styles
@@ -97,37 +106,49 @@ const footerButtonClass =
 
 const panelClass =
     "[&_[data-sidebar=sidebar]]:rounded-3xl [&_[data-sidebar=sidebar]]:border-[#1F2A1F]/10 [&_[data-sidebar=sidebar]]:bg-[#FFF8EC] [&_[data-sidebar=sidebar]]:text-[#1F2A1F] [&_[data-sidebar=sidebar]]:shadow-xl"
-const profileUrlByRole: Record<Role, string> = {
-    vendor: "/dashboard/vendor/profile",
-    customer: "/dashboard/customer/profile",
-    admin: "/dashboard/profile",
-}
+
 // 4) The sidebar
 export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser }) {
     const pathname = usePathname()
     const router = useRouter()
-    const { data: session, isPending } = useSession()
+    const { data: session } = useSession()
 
-    // Prefer the live client session, fall back to what the server already knew
-    const user = (session?.user ?? initialUser) as SidebarUser | undefined
+    // The first browser render must match the server HTML, so the live client
+    // session is used only after the component has mounted.
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const liveUser = session?.user as SidebarUser | undefined
+    const user = (mounted ? liveUser ?? initialUser : initialUser) as
+        | SidebarUser
+        | undefined
 
     const rawRole = user?.role
     const role: Role =
-        rawRole && rawRole in menuItemsByRole ? (rawRole as Role) : "customer"
+        rawRole === "admin" || rawRole === "vendor" || rawRole === "customer"
+            ? rawRole
+            : "customer"
 
     const items = menuItemsByRole[role]
     const displayName = user?.name || user?.email || "User"
     const roleLabel = role.charAt(0).toUpperCase() + role.slice(1)
+    const profileUrl = profileUrlByRole[role]
 
     const handleSignOut = async () => {
-        await signOut()
-        router.push("/")
-        router.refresh()
+        try {
+            await signOut()
+            router.push("/")
+            router.refresh()
+        } catch (error) {
+            console.error("Sign out failed:", error)
+        }
     }
 
-    // Nothing known yet (no server user, client session still loading):
-    // show a skeleton instead of the wrong role.
-    if (isPending && !user) {
+    // No user known at all (should not happen inside the dashboard layout)
+    if (!user) {
         return (
             <Sidebar variant="floating" collapsible="icon" className={panelClass}>
                 <SidebarHeader className="p-3">
@@ -213,7 +234,7 @@ export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser })
                         <SidebarMenuButton
                             tooltip="Profile settings"
                             className={footerButtonClass}
-                            render={<Link href="/dashboard/profile" />}
+                            render={<Link href={profileUrl} />}
                         >
                             <Settings />
                             <span>Profile settings</span>
@@ -230,7 +251,6 @@ export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser })
                             <span>Sign out</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    
                 </SidebarMenu>
             </SidebarFooter>
 
