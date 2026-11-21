@@ -4,6 +4,7 @@ export const BASE_URL =
 export type MenuItem = {
   _id: string
   name: string
+  email:string
   category: string
   price: number
   location: string
@@ -16,6 +17,7 @@ export type MenuItem = {
 
 export type NewMenuItem = {
   name: string
+  email:string
   category: string
   price: number
   location: string

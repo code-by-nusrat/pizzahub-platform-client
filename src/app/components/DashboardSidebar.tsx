@@ -1,26 +1,21 @@
 "use client"
 
-// PizzaHub dashboard sidebar: floating card style (same colors and content)
-//
+// PizzaHub dashboard sidebar: floating card style
 // Needs the shadcn sidebar:  npx shadcn@latest add sidebar
-// Use it inside <SidebarProvider>:  <DashboardSidebar />
+// Use it inside <SidebarProvider>, and pass the server session as initialUser
+// so the correct role shows on the very first paint (no "Customer" flash).
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
     CirclePlus,
     ClipboardList,
-    CreditCard,
-    Heart,
     LayoutDashboard,
     LogOut,
-    MapPin,
     Settings,
     ShoppingBag,
     Sparkles,
-    Star,
     Store,
-    Tags,
     UtensilsCrossed,
     Users,
     type LucideIcon,
@@ -51,22 +46,26 @@ type DashboardMenuItem = {
     icon: LucideIcon
 }
 
+export type SidebarUser = {
+    name?: string | null
+    email?: string | null
+    role?: string
+}
+
 // 2) Menu items for each role
 const menuItemsByRole: Record<Role, DashboardMenuItem[]> = {
     vendor: [
-        { id: "vendor-overview", name: "Overview", url: "/dashboard", icon: LayoutDashboard },
+        { id: "vendor-overview", name: "Overview", url: "/dashboard/vendor", icon: LayoutDashboard },
         { id: "vendor-menu-items", name: "My Menu Items", url: "/dashboard/vendor/menu", icon: UtensilsCrossed },
         { id: "vendor-add-menu-item", name: "Add Menu Item", url: "/dashboard/vendor/menu/new", icon: CirclePlus },
-        { id: "vendor-customer-orders", name: "Customer Orders", url: "/dashboard/orders", icon: ClipboardList },
+        // Folder is src/app/dashboard/order (singular), so the URL must match
+        { id: "vendor-customer-orders", name: "Customer Orders", url: "/dashboard/order", icon: ClipboardList },
         { id: "vendor-subscription", name: "Subscription", url: "/dashboard/vendor/subscription", icon: Sparkles },
     ],
 
     customer: [
-        { id: "customer-overview", name: "Overview", url: "/dashboard", icon: LayoutDashboard },
-        { id: "customer-orders", name: "My Orders", url: "/dashboard/my-orders", icon: ShoppingBag },
-        { id: "customer-favorites", name: "Favorites", url: "/dashboard/favorites", icon: Heart },
-        { id: "customer-addresses", name: "Saved Addresses", url: "/dashboard/addresses", icon: MapPin },
-        { id: "customer-reviews", name: "My Reviews", url: "/dashboard/reviews", icon: Star },
+        { id: "customer-overview", name: "Overview", url: "/dashboard/customer/overview", icon: LayoutDashboard },
+        { id: "customer-orders", name: "My Orders", url: "/dashboard/customer/my-order", icon: ShoppingBag },
     ],
 
     admin: [
@@ -74,14 +73,10 @@ const menuItemsByRole: Record<Role, DashboardMenuItem[]> = {
         { id: "admin-users", name: "Manage Users", url: "/dashboard/users", icon: Users },
         { id: "admin-vendors", name: "Manage Menu Items", url: "/dashboard/vendors", icon: Store },
         { id: "admin-orders", name: "Transactions", url: "/dashboard/transactions", icon: ClipboardList },
-        // { id: "admin-categories", name: "Categories", url: "/dashboard/categories", icon: Tags },
-        // { id: "admin-subscriptions", name: "Subscriptions", url: "/dashboard/subscriptions", icon: CreditCard },
     ],
 }
 
-// 3) Style for every menu button.
-//    "group/btn" lets the icon tile react to the button's active state.
-//    The red bar on the left only shows on the current page.
+// 3) Styles
 const menuButtonClass =
     "group/btn relative h-12 gap-3 rounded-xl px-2 text-[#1F2A1F]/70 transition-all " +
     "hover:bg-[#2F6B3A]/10 hover:text-[#1F2A1F] " +
@@ -91,27 +86,32 @@ const menuButtonClass =
     "before:rounded-full before:bg-[#E8452C] before:opacity-0 " +
     "data-[active=true]:before:opacity-100"
 
-// The small rounded square behind each icon
 const iconTileClass =
     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/5 transition-colors " +
     "group-data-[active=true]/btn:bg-[#E8452C] group-data-[active=true]/btn:text-white " +
     "group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:w-auto " +
     "group-data-[collapsible=icon]:bg-transparent"
 
-// Style for the two bottom links
 const footerButtonClass =
     "h-10 rounded-xl px-3 text-[#1F2A1F]/70 hover:bg-black/5 hover:text-[#1F2A1F]"
 
+const panelClass =
+    "[&_[data-sidebar=sidebar]]:rounded-3xl [&_[data-sidebar=sidebar]]:border-[#1F2A1F]/10 [&_[data-sidebar=sidebar]]:bg-[#FFF8EC] [&_[data-sidebar=sidebar]]:text-[#1F2A1F] [&_[data-sidebar=sidebar]]:shadow-xl"
+const profileUrlByRole: Record<Role, string> = {
+    vendor: "/dashboard/vendor/profile",
+    customer: "/dashboard/customer/profile",
+    admin: "/dashboard/profile",
+}
 // 4) The sidebar
-export function DashboardSidebar() {
+export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser }) {
     const pathname = usePathname()
     const router = useRouter()
-    const { data: session } = useSession()
+    const { data: session, isPending } = useSession()
 
-    const user = session?.user
+    // Prefer the live client session, fall back to what the server already knew
+    const user = (session?.user ?? initialUser) as SidebarUser | undefined
 
-    // Use the user's role. If it is missing or unknown, treat them as a customer.
-    const rawRole = (user as { role?: string } | undefined)?.role
+    const rawRole = user?.role
     const role: Role =
         rawRole && rawRole in menuItemsByRole ? (rawRole as Role) : "customer"
 
@@ -125,20 +125,30 @@ export function DashboardSidebar() {
         router.refresh()
     }
 
-    return (
-        <Sidebar
-            variant="floating"
-            collapsible="icon"
-            // Cream panel with big rounded corners that floats off the screen edge
-            className="[&_[data-sidebar=sidebar]]:rounded-3xl [&_[data-sidebar=sidebar]]:border-[#1F2A1F]/10 [&_[data-sidebar=sidebar]]:bg-[#FFF8EC] [&_[data-sidebar=sidebar]]:text-[#1F2A1F] [&_[data-sidebar=sidebar]]:shadow-xl"
-        >
-            {/* TOP: user card */}
+    // Nothing known yet (no server user, client session still loading):
+    // show a skeleton instead of the wrong role.
+    if (isPending && !user) {
+        return (
+            <Sidebar variant="floating" collapsible="icon" className={panelClass}>
+                <SidebarHeader className="p-3">
+                    <div className="h-14 animate-pulse rounded-2xl bg-black/5" />
+                </SidebarHeader>
+                <SidebarContent className="gap-2 px-4 pt-4">
+                    <div className="h-10 animate-pulse rounded-xl bg-black/5" />
+                    <div className="h-10 animate-pulse rounded-xl bg-black/5" />
+                    <div className="h-10 animate-pulse rounded-xl bg-black/5" />
+                </SidebarContent>
+            </Sidebar>
+        )
+    }
 
+    return (
+        <Sidebar variant="floating" collapsible="icon" className={panelClass}>
+            {/* TOP: user card */}
             <SidebarHeader className="p-3 group-data-[collapsible=icon]:p-2">
                 <div className="flex items-center gap-3 rounded-2xl bg-white p-2.5 shadow-sm group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:shadow-none">
                     <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8452C]/15 text-base font-bold text-[#E8452C] group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:text-sm">
                         {displayName.charAt(0).toUpperCase()}
-                        {/* Small green "online" dot */}
                         <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-[#2F6B3A]" />
                     </span>
 
@@ -182,7 +192,6 @@ export function DashboardSidebar() {
 
             {/* BOTTOM: promo card, profile settings, sign out */}
             <SidebarFooter className="gap-3 p-3">
-                {/* Promo card with a dashed border */}
                 <div className="flex items-start gap-3 rounded-2xl border border-dashed border-[#E8452C]/40 bg-[#E8452C]/5 p-3 group-data-[collapsible=icon]:hidden">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
                         <Sparkles className="h-4 w-4 text-[#E8452C]" />
@@ -221,6 +230,7 @@ export function DashboardSidebar() {
                             <span>Sign out</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    
                 </SidebarMenu>
             </SidebarFooter>
 
