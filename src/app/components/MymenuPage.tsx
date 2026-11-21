@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -11,6 +12,7 @@ import {
   MapPin,
   Loader2,
   ImageOff,
+  Sparkles,
 } from "lucide-react"
 import { toast } from "react-toastify"
 
@@ -100,6 +102,9 @@ function MenuImage({ src, alt }: { src?: string; alt: string }) {
 
 type MyMenuPageProps = {
   initialItems?: MenuItem[]
+  // From /subscription/:email — free vendors can publish 3 active items
+  premium?: boolean
+  activeItemLimit?: number | null
 }
 
 type EditForm = {
@@ -123,7 +128,11 @@ const emptyForm: EditForm = {
   description: "",
 }
 
-export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
+export default function MyMenuPage({
+  initialItems,
+  premium = false,
+  activeItemLimit = 3,
+}: MyMenuPageProps) {
   const router = useRouter()
 
   // Items saved without a status or availability get safe defaults
@@ -265,6 +274,11 @@ export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
   const pending = items.filter((i) => i.approvalStatus === "pending").length
   const rejected = items.filter((i) => i.approvalStatus === "rejected").length
 
+  // Published (active) items. Free vendors may publish `activeItemLimit`.
+  const activeCount = items.filter((i) => i.isAvailable).length
+  const limitReached =
+    !premium && typeof activeItemLimit === "number" && activeCount >= activeItemLimit
+
   return (
     <div className="min-h-screen space-y-6 bg-[#FFF8EC] p-4 sm:p-6">
      
@@ -306,6 +320,53 @@ export default function MyMenuPage({ initialItems }: MyMenuPageProps) {
             </h2>
           </div>
         ))}
+      </div>
+
+      {/* Plan / publishing limit */}
+      <div
+        className={`flex flex-col justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center ${
+          limitReached
+            ? "border-[#E8452C]/40 bg-[#E8452C]/5"
+            : "border-[#2B1B14]/10 bg-white"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              premium
+                ? "bg-[#EAF4E8] text-[#3D8545]"
+                : "bg-[#FFF1DD] text-[#E8452C]"
+            }`}
+          >
+            <Sparkles className="h-5 w-5" />
+          </span>
+
+          <div>
+            <p className="font-bold text-[#2B1B14]">
+              {premium ? "Premium plan" : "Free plan"}
+            </p>
+            <p className="mt-0.5 text-sm text-[#7A6258]">
+              {premium
+                ? "Unlimited active menu items."
+                : `${activeCount} of ${
+                    typeof activeItemLimit === "number" ? activeItemLimit : 3
+                  } active items published. Upgrade to Premium before publishing more.`}
+            </p>
+          </div>
+        </div>
+
+        {!premium && (
+          <Link
+            href="/dashboard/vendor/subscription"
+            className={`inline-flex h-10 shrink-0 items-center justify-center px-5 text-sm font-bold uppercase tracking-wider text-white transition-colors ${
+              limitReached
+                ? "bg-[#E8452C] hover:bg-[#C2331B]"
+                : "bg-[#2B1B14] hover:bg-black"
+            }`}
+          >
+            Upgrade to Premium
+          </Link>
+        )}
       </div>
 
       {/* Search and Filter */}
