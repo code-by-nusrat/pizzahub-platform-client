@@ -1,23 +1,42 @@
-import { headers } from "next/headers";
-import { auth } from "./auth";
+import "server-only"
+import { MongoClient } from "mongodb"
+import { getSession } from "@/lib/core/server"
 
+const g = globalThis as typeof globalThis & { mongoClient?: MongoClient }
 
-export const getUsers =async()=>{
-const users = await auth.api.listUsers({
-    query: {
-        searchValue: "some name", // The value to search for.
-        searchField: "name", // The field to search in, defaults to email. Can be `email` or `name`.
-        searchOperator: "contains", // The operator to use for the search. Can be `contains`, `starts_with` or `ends_with`.
-        limit: 100, // The number of users to return. Defaults to 100.
-        offset: 100, // The offset to start from.
-        sortBy: "name", // The field to sort by.
-        sortDirection: "desc", // The direction to sort by.
-        filterField: "email", // The field to filter by.
-        filterValue: "hello@example.com", // The value to filter by.
-        filterOperator: "eq", // The operator to use for the filter.
-    },
-    // This endpoint requires session cookies.
-    headers: await headers(),
-});
-return users
+function getDb() {
+  const uri = process.env.BETTER_AUTH_DB_URI
+  if (!uri) throw new Error("BETTER_AUTH_DB_URI is missing")
+  g.mongoClient ??= new MongoClient(uri)
+  return g.mongoClient.db("pizzahubdb")
+}
+
+// Admin only: returns every user as a plain array.
+export const getUsers = async () => {
+  const session = await getSession()
+  const role = (session?.user as { role?: string } | undefined)?.role
+
+  if (role !== "admin") throw new Error("Forbidden")
+
+  const users = await getDb()
+    .collection("user")
+    .find(
+      {},
+      {
+        projection: {
+          name: 1,
+          email: 1,
+          image: 1,
+          role: 1,
+         status:1,
+          emailVerified: 1,
+          createdAt: 1,
+        },
+      },
+    )
+    .sort({ createdAt: -1 })
+    .limit(500)
+    .toArray()
+
+  return users
 }

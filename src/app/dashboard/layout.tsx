@@ -11,6 +11,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   if (!session?.user?.email) redirect("/sign-in")
 
   const u = session.user as { name?: string; email?: string; role?: string }
+  if ((session.user as { status?: string }).status === "blocked") redirect("/blocked")
 
   return (
     <SidebarProvider>
