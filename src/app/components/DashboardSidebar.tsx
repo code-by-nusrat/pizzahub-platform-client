@@ -116,7 +116,7 @@ export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser })
     // Keep the server and hydration snapshots aligned; switch to the live
     // session once the client has hydrated without setting state in an effect.
     const mounted = useSyncExternalStore(
-        () => () => {},
+        () => () => { },
         () => true,
         () => false,
     )
@@ -230,7 +230,7 @@ export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser })
                 <div className="h-px bg-[#1F2A1F]/10" />
 
                 <SidebarMenu className="gap-1">
-                    <SidebarMenuItem>
+                    {/* <SidebarMenuItem>
                         <SidebarMenuButton
                             tooltip="Profile settings"
                             className={footerButtonClass}
@@ -239,8 +239,35 @@ export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser })
                             <Settings />
                             <span>Profile settings</span>
                         </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    </SidebarMenuItem> */}
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            tooltip={
+                                role === "admin"
+                                    ? "Profile settings are disabled for administrators"
+                                    : "Profile settings"
+                            }
+                            disabled={role === "admin"}
+                            className={`${footerButtonClass} ${role === "admin"
+                                    ? "cursor-not-allowed opacity-40"
+                                    : ""
+                                }`}
+                            render={
+                                role === "admin"
+                                    ? undefined
+                                    : <Link href={profileUrl} />
+                            }
+                        >
+                            <Settings />
+                            <span>Profile settings</span>
 
+                            {role === "admin" && (
+                                <span className="ml-auto text-[10px] font-bold">
+                                    Locked
+                                </span>
+                            )}
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             tooltip="Sign out"

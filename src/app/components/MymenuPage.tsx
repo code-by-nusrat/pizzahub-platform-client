@@ -152,6 +152,7 @@ export default function MyMenuPage({
 
   // Edit state
   const [editing, setEditing] = useState<MenuItem | null>(null)
+  const [viewing, setViewing] = useState<MenuItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<EditForm>(emptyForm)
 
@@ -168,14 +169,7 @@ export default function MyMenuPage({
 
   // View item
   function viewItem(item: MenuItem) {
-    alert(
-      `Name: ${item.name}\n\n` +
-        `Category: ${item.category}\n\n` +
-        `Description: ${item.description}\n\n` +
-        `Price: ৳${item.price}\n\n` +
-        `Location: ${item.location}\n\n` +
-        `Status: ${item.approvalStatus}`
-    )
+      setViewing(item)
   }
 
   // Open edit dialog
@@ -505,6 +499,39 @@ export default function MyMenuPage({
           </div>
         )}
       </div>
+      {/* View Item Dialog */}
+<Dialog
+  open={!!viewing}
+  onOpenChange={(open) => {
+    if (!open) setViewing(null)
+  }}
+>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle>Menu Item Details</DialogTitle>
+      <DialogDescription>
+        Complete information about this item.
+      </DialogDescription>
+    </DialogHeader>
+
+    {viewing && (
+      <div className="space-y-3">
+        <MenuImage src={viewing.image} alt={viewing.name} />
+
+        <p><strong>Name:</strong> {viewing.name}</p>
+        <p><strong>Category:</strong> {viewing.category}</p>
+        <p><strong>Description:</strong> {viewing.description}</p>
+        <p><strong>Price:</strong> ৳{viewing.price}</p>
+        <p><strong>Location:</strong> {viewing.location}</p>
+        <p><strong>Approval:</strong> {viewing.approvalStatus}</p>
+        <p>
+          <strong>Availability:</strong>{" "}
+          {viewing.isAvailable ? "Available" : "Unavailable"}
+        </p>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
 
       {/* Edit Dialog */}
       <Dialog

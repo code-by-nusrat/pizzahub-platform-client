@@ -29,3 +29,12 @@ export const requireRole =async(role:string)=>{
   }
     return session;
 }
+export const authfetch =async (api:string)=>{
+    const token =await getToken();
+    const res =await fetch(api,{
+        headers:{
+            authirization:`Bearer${token}`
+        }
+    })
+    return res;
+}

@@ -56,15 +56,28 @@ export default function UsersManager({
         return c
     }, [users])
 
+    // const shown = useMemo(() => {
+    //     const q = query.trim().toLowerCase()
+    //     return users.filter(
+    //         (u) =>
+    //             (role === "all" || u.role === role) &&
+    //             (status === "all" || (status === "blocked") === u.blocked) &&
+    //             (!q || u.name.toLowerCase().includes(q) || u.email.includes(q)),
+    //     )
+    // }, [users, query, role, status])
     const shown = useMemo(() => {
         const q = query.trim().toLowerCase()
-        return users.filter(
-            (u) =>
-                (role === "all" || u.role === role) &&
-                (status === "all" || (status === "blocked") === u.blocked) &&
-                (!q || u.name.toLowerCase().includes(q) || u.email.includes(q)),
-        )
-    }, [users, query, role, status])
+
+        return users
+            .filter(
+                (u) =>
+                    (role === "all" || u.role === role) &&
+                    (status === "all" || (status === "blocked") === u.blocked) &&
+                    (!q || u.name.toLowerCase().includes(q) || u.email.includes(q)),
+            )
+            // Your own admin row always stays first; everyone else keeps their order
+            .sort((a, b) => Number(b.email === currentEmail) - Number(a.email === currentEmail))
+    }, [users, query, role, status, currentEmail])
 
     function toggle(user: UserRow) {
         const next = !user.blocked
@@ -194,7 +207,17 @@ export default function UsersManager({
                             const isMe = u.email === currentEmail
                             const meta = ROLE_META[u.role]
                             return (
-                                <TableRow key={u.id} className={u.blocked ? "bg-red-50/50" : undefined}>
+                                <TableRow
+                                    key={u.id}
+                                    className={
+                                        u.blocked
+                                            ? "bg-red-50/50"
+                                            : isMe
+                                                ? "bg-[#E8452C]/5"
+                                                : undefined
+                                    }
+                                >
+
                                     <TableCell className="pl-5">
                                         <div className="flex items-center gap-3">
                                             <Avatar className={`size-10 ${u.blocked ? "grayscale" : ""}`}>
@@ -278,8 +301,8 @@ export default function UsersManager({
                                                     aria-pressed={!u.blocked}
                                                     onClick={() => u.blocked && toggle(u)}
                                                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed ${!u.blocked
-                                                            ? "bg-[#2F6B3A] text-white shadow-sm"
-                                                            : "text-[#1F2A1F]/50 hover:text-[#2F6B3A]"
+                                                        ? "bg-[#2F6B3A] text-white shadow-sm"
+                                                        : "text-[#1F2A1F]/50 hover:text-[#2F6B3A]"
                                                         }`}
                                                 >
                                                     <UserCheck className="size-3.5" />
@@ -292,8 +315,8 @@ export default function UsersManager({
                                                     aria-pressed={u.blocked}
                                                     onClick={() => !u.blocked && toggle(u)}
                                                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed ${u.blocked
-                                                            ? "bg-[#B3261E] text-white shadow-sm"
-                                                            : "text-[#1F2A1F]/50 hover:text-[#B3261E]"
+                                                        ? "bg-[#B3261E] text-white shadow-sm"
+                                                        : "text-[#1F2A1F]/50 hover:text-[#B3261E]"
                                                         }`}
                                                 >
                                                     <Ban className="size-3.5" />

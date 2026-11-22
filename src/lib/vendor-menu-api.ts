@@ -78,7 +78,7 @@ export function changeAvailability(id: string, isAvailable: boolean) {
 export async function getItems(businessName?: string): Promise<MenuItem[]> {
   const query = new URLSearchParams({ approvalStatus: "all" })
   if (businessName) query.set("businessName", businessName)
-
+   
   const data = await request(
     `${BASE_URL}/menu?${query.toString()}`,
     { cache: "no-store" },

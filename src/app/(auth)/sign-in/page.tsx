@@ -273,14 +273,6 @@ export default function SignInPage() {
                   >
                     Password
                   </label>
-
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs font-semibold hover:underline"
-                    style={{ color: COLORS.green }}
-                  >
-                    Forgot password?
-                  </Link>
                 </div>
 
                 <div className="relative">

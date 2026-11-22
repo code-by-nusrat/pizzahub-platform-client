@@ -1,11 +1,6 @@
-import React from 'react';
+import { redirect } from "next/navigation"
 
-const VendorDashboardPage = () => {
-    return (
-        <div>
-            <h2>My menu items</h2>
-        </div>
-    );
-};
-
-export default VendorDashboardPage;
+// /dashboard/vendor has no page of its own; send vendors to their overview
+export default function VendorIndexPage() {
+  redirect("/dashboard/vendor/overview")
+}

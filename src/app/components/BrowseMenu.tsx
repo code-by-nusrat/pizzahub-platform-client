@@ -18,6 +18,7 @@ import { getMenu, type MenuItem } from "@/lib/vendor-menu-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import Navbar from "./Navbar"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -169,9 +170,11 @@ export default function BrowseMenu({ initial }: { initial: Filters }) {
   const locations = useMemo(() => knownLocations, [knownLocations])
 
   return (
-    <div className="min-h-screen bg-[#FFF8EC] px-4 py-6 sm:px-8 sm:py-10">
+    <div className="min-h-screen bg-[#FFF8EC] px-4 py-1 sm:px-8 sm:py-5">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Hero */}
+              <Navbar></Navbar>
+
         <header className="relative overflow-hidden bg-linear-to-r from-[#E8452C] to-[#F2751A] p-6 text-white sm:p-12">
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full bg-[#2B1B14]/10" />

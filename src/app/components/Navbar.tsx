@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ChevronDown, Menu, Pizza, ShoppingCart } from "lucide-react"
+import { ChevronDown, Menu, Pizza } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -32,8 +32,9 @@ const mobileUnderline =
 function Underline({ active }: { active: boolean }) {
   return (
     <span
-      className={`absolute bottom-1 left-5 right-5 h-0.5 origin-left rounded-full transition-transform duration-300 ${active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-        }`}
+      className={`absolute bottom-1 left-5 right-5 h-0.5 origin-left rounded-full transition-transform duration-300 ${
+        active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+      }`}
       style={{ backgroundColor: COLORS.tomato }}
     />
   )
@@ -56,29 +57,6 @@ function Logo() {
       >
         Pizza<span style={{ color: COLORS.tomato }}>Hub</span>
       </span>
-    </Link>
-  )
-}
-
-// Cart button
-function CartButton({ count }: { count: number }) {
-  return (
-    <Link
-      href="/cart"
-      aria-label={`Cart, ${count} items`}
-      className="relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-black/5"
-      style={{ color: COLORS.ink }}
-    >
-      <ShoppingCart className="h-5 w-5" />
-
-      {count > 0 && (
-        <span
-          className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
-          style={{ backgroundColor: COLORS.tomato }}
-        >
-          {count > 9 ? "9+" : count}
-        </span>
-      )}
     </Link>
   )
 }
@@ -109,11 +87,7 @@ function Avatar({ name, image }: { name: string; image?: string | null }) {
   )
 }
 
-export default function Navbar({
-  cartCount = 0,
-}: {
-  cartCount?: number
-}) {
+export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -139,14 +113,24 @@ export default function Navbar({
   const displayName = user?.name || user?.email || "User"
   const firstName = displayName.split(" ")[0]
 
+  // Dashboard URL by role.
+  // Each one must match a real folder under src/app/dashboard.
+  const dashboardHref =
+    role === "admin"
+      ? "/dashboard"
+      : role === "vendor"
+        ? "/dashboard/vendor/overview"
+        : "/dashboard/customer/overview"
+
+  // One profile page for customers and vendors; it is frozen for admins
+  const profileHref = "/dashboard/profile"
+  const profileLocked = role === "admin"
+
   // Navigation links
   const links = [
     { label: "Home", href: "/" },
     { label: "Browse Menu", href: "/browse-menu" },
-    {
-      label: "Dashboard",
-      href: `/dashboard/${session?.user.role || "customer"}`,
-    },
+    ...(user ? [{ label: "Dashboard", href: dashboardHref }] : []),
   ]
 
   // Check active route
@@ -218,12 +202,14 @@ export default function Navbar({
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full px-3 transition-all mb-5 duration-300 sm:px-4 ${scrolled ? "pt-2" : "pt-4"
-        }`}
+      className={`sticky top-0 z-50 mb-5 w-full px-3 transition-all duration-300 sm:px-4 ${
+        scrolled ? "pt-2" : "pt-4"
+      }`}
     >
       <nav
-        className={`mx-auto flex max-w-5xl items-center justify-between rounded-full border px-3 transition-all duration-300 sm:px-4 lg:px-6 ${scrolled ? "h-14 shadow-xl backdrop-blur" : "h-16 shadow-lg"
-          }`}
+        className={`mx-auto flex max-w-5xl items-center justify-between rounded-full border px-3 transition-all duration-300 sm:px-4 lg:px-6 ${
+          scrolled ? "h-14 shadow-xl backdrop-blur" : "h-16 shadow-lg"
+        }`}
         style={{
           backgroundColor: scrolled
             ? "rgba(255,248,236,0.92)"
@@ -255,8 +241,6 @@ export default function Navbar({
 
         {/* Right side */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <CartButton count={cartCount} />
-
           {/* 1) Still checking the session: small placeholder so buttons don't flicker */}
           {isPending && (
             <div className="h-8 w-16 animate-pulse rounded-full bg-black/10 sm:w-24" />
@@ -280,8 +264,9 @@ export default function Navbar({
                 </span>
 
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform duration-300 ${userOpen ? "rotate-180" : ""
-                    }`}
+                  className={`h-4 w-4 transition-transform duration-300 ${
+                    userOpen ? "rotate-180" : ""
+                  }`}
                 />
               </button>
 
@@ -310,19 +295,30 @@ export default function Navbar({
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => go("/dashboard")}
+                    onClick={() => go(dashboardHref)}
                     className="flex w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition hover:bg-[#2F6B3A]/10"
                   >
                     Dashboard
                   </button>
 
+                  {/* Profile settings: frozen for admins */}
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => go("/dashboard/profile")}
-                    className="flex w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition hover:bg-[#2F6B3A]/10"
+                    disabled={profileLocked}
+                    onClick={() => go(profileHref)}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+                      profileLocked
+                        ? "cursor-not-allowed opacity-40"
+                        : "hover:bg-[#2F6B3A]/10"
+                    }`}
                   >
-                    Profile settings
+                    <span>Profile settings</span>
+                    {profileLocked && (
+                      <span className="text-[10px] font-bold text-[#E8452C]">
+                        Locked
+                      </span>
+                    )}
                   </button>
 
                   <button
@@ -378,9 +374,7 @@ export default function Navbar({
                 color: COLORS.ink,
               }}
             >
-              <SheetTitle className="sr-only">
-                Navigation menu
-              </SheetTitle>
+              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
 
               <div className="mt-6 flex flex-col gap-2">
                 {links.map((link) => (
@@ -388,15 +382,47 @@ export default function Navbar({
                     key={link.href}
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className={`rounded-full px-5 py-3 text-base font-semibold ${isActive(link.href) ? mobileUnderline : ""
-                      }`}
-                    style={
-                      isActive(link.href) ? activeStyle : idleStyle
-                    }
+                    className={`rounded-full px-5 py-3 text-base font-semibold ${
+                      isActive(link.href) ? mobileUnderline : ""
+                    }`}
+                    style={isActive(link.href) ? activeStyle : idleStyle}
                   >
                     {link.label}
                   </Link>
                 ))}
+
+                {/* Logged in: profile (frozen for admins) and sign out */}
+                {!isPending && user && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={profileLocked}
+                      onClick={() => go(profileHref)}
+                      className={`flex w-full items-center justify-between rounded-full px-5 py-3 text-left text-base font-semibold transition ${
+                        profileLocked
+                          ? "cursor-not-allowed opacity-40"
+                          : "hover:bg-[#2F6B3A]/10"
+                      }`}
+                      style={{ color: COLORS.ink }}
+                    >
+                      <span>Profile Settings</span>
+                      {profileLocked && (
+                        <span className="text-xs font-bold text-[#E8452C]">
+                          Locked
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex w-full rounded-full px-5 py-3 text-left text-base font-semibold transition hover:bg-[#E8452C]/10"
+                      style={{ color: COLORS.tomato }}
+                    >
+                      Sign out
+                    </button>
+                  </>
+                )}
 
                 {/* Mobile auth buttons (only when logged out) */}
                 {!isPending && !user && (

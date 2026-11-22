@@ -1,4 +1,6 @@
 import BrowseMenu from "@/app/components/BrowseMenu"
+import Footer from "../components/Footer"
+
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -13,7 +15,8 @@ export default async function BrowseMenuPage({
   const params = await searchParams
 
   return (
-    <BrowseMenu
+    <div>
+      <BrowseMenu
       initial={{
         // ?search=sides (also accepts the old ?name=sides)
         name: first(params.search) || first(params.name),
@@ -21,5 +24,8 @@ export default async function BrowseMenuPage({
         location: first(params.location),
       }}
     />
+    <Footer></Footer>
+    </div>
+    
   )
 }

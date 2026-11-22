@@ -1,12 +1,11 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { ArrowLeft, ImageOff } from "lucide-react"
 import { Fraunces } from "next/font/google"
-import { redirect } from "next/navigation"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 import { getMenuItem } from "@/lib/vendor-menu-api"
 import OrderPanel from "./OrderPanel"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
 
 const serif = Fraunces({ subsets: ["latin"], style: ["normal", "italic"] })
 
@@ -31,28 +30,15 @@ export default async function MenuDetailsPage({
     params: Promise<{ id: string }>
 }) {
     const { id } = await params
+
     const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-    if (!session?.user) redirect(`/sign-in`)
+        headers: await headers(),
+    })
+    if (!session?.user) redirect("/sign-in")
 
+    // Only customers can open this page. Admins and vendors go back to the menu.
     const role = (session.user as { role?: string }).role
-    if (role !== "customer" && role !== "vendor") redirect("/browse-menu")
-
-    // A vendor account can order from other kitchens, but not from its own.
-    // This dish is flagged so the order form is replaced by a notice.
-    let ownBusinessName = ""
-    if (role === "vendor" && session.user.email) {
-      const profileRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"}/vendor-profile/${encodeURIComponent(session.user.email)}`,
-        { cache: "no-store" }
-      ).catch(() => null)
-
-      if (profileRes?.ok) {
-        const profile = await profileRes.json().catch(() => null)
-        ownBusinessName = String(profile?.businessName || "")
-      }
-    }
+    if (role !== "customer") redirect("/browse-menu")
 
     const item = await getMenuItem(id)
 
@@ -61,10 +47,6 @@ export default async function MenuDetailsPage({
 
     const vendor = item.businessName || "Local kitchen"
     const available = item.isAvailable !== false
-    const ownItem =
-      Boolean(ownBusinessName) &&
-      String(item.businessName || "").toLowerCase() ===
-        ownBusinessName.toLowerCase()
     const price = Number(item.price)
 
     return (
@@ -179,29 +161,14 @@ export default async function MenuDetailsPage({
                         </p>
 
                         <div className="mt-8">
-                            {ownItem ? (
-                                <div className="border border-green-900/35 bg-white p-6 outline outline-1 outline-offset-[6px] outline-green-900/20 sm:p-7">
-                                    <h2
-                                        className={`${serif.className} text-2xl font-semibold italic text-green-900`}
-                                    >
-                                        Your own dish
-                                    </h2>
-                                    <p className="mt-3 text-sm leading-6 text-green-800">
-                                        This item belongs to your kitchen, so you
-                                        cannot order it yourself. You can still
-                                        order dishes from other vendors.
-                                    </p>
-                                </div>
-                            ) : (
-                                <OrderPanel
-                                    menuId={item._id}
-                                    name={item.name}
-                                    price={price}
-                                    image={item.image}
-                                    businessName={item.businessName}
-                                    available={available}
-                                />
-                            )}
+                            <OrderPanel
+                                menuId={item._id}
+                                name={item.name}
+                                price={price}
+                                image={item.image}
+                                businessName={item.businessName}
+                                available={available}
+                            />
                         </div>
                     </div>
                 </div>
