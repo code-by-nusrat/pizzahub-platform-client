@@ -78,6 +78,16 @@ export default function SubscriptionPlans({
                     </p>
                 </div>
 
+                {/* Checkout guard notice */}
+                {checkoutNotice && (
+                    <p
+                        role="status"
+                        className="mx-auto mt-6 max-w-2xl border-l-2 border-[#E8452C] bg-white px-4 py-3 text-sm text-[#2B1B14]"
+                    >
+                        {checkoutNotice}
+                    </p>
+                )}
+
                 {/* Plans */}
                 <div className="mt-14 grid items-stretch gap-6 md:grid-cols-2 md:gap-0">
                     {/* ---------- Free ---------- */}

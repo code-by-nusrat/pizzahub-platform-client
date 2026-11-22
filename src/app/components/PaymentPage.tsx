@@ -140,8 +140,8 @@ const PaymentPage = ({ customer }: { customer: Customer }) => {
       setToast("Order confirmed! Thank you for ordering with PizzaHub.")
       clear()
 
-      // Show the success message for a moment, then go to the homepage
-      setTimeout(() => router.push("/"), 2000)
+      // Show the success message for a moment, then go to the customer orders page
+      setTimeout(() => router.push("/dashboard/customer/my-order"), 2000)
     } catch {
       setToastError(true)
       setToast("Could not reach the server. Please try again.")

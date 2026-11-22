@@ -59,7 +59,7 @@ export function addItem(item: NewMenuItem) {
 }
 
 export function updateItem(id: string, payload: Partial<MenuItem>) {
-  return request(`${BASE_URL}/menu/${id}`, json("PATCH", payload), "Failed to update menu item")
+  return request(`${BASE_URL}/menu/${id}`, json("PUT", payload), "Failed to update menu item")
 }
 
 export function deleteItem(id: string) {

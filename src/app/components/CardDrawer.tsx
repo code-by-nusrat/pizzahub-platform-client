@@ -194,7 +194,7 @@ export default function CartDrawer() {
               </p>
 
               <Link
-                href="/my-orders"
+                href="/dashboard/customer/my-order"
                 onClick={handleClose}
                 className="mt-6 bg-[#E8452C] px-6 py-2.5 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#C2331B]"
               >

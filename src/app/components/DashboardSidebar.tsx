@@ -7,7 +7,7 @@
 //
 // KEEP ONLY ONE COPY of this file in the project.
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -78,10 +78,10 @@ const menuItemsByRole: Record<Role, DashboardMenuItem[]> = {
     ],
 }
 
-// Where "Profile settings" goes for each role
+// Profile settings are shared: the page detects the role and shows the right form.
 const profileUrlByRole: Record<Role, string> = {
-    vendor: "/dashboard/vendor/profile",
-    customer: "/dashboard/customer/profile",
+    vendor: "/dashboard/profile",
+    customer: "/dashboard/profile",
     admin: "/dashboard/profile",
 }
 
@@ -113,13 +113,13 @@ export function DashboardSidebar({ initialUser }: { initialUser?: SidebarUser })
     const router = useRouter()
     const { data: session } = useSession()
 
-    // The first browser render must match the server HTML, so the live client
-    // session is used only after the component has mounted.
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
+    // Keep the server and hydration snapshots aligned; switch to the live
+    // session once the client has hydrated without setting state in an effect.
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    )
 
     const liveUser = session?.user as SidebarUser | undefined
     const user = (mounted ? liveUser ?? initialUser : initialUser) as

@@ -182,11 +182,16 @@ export const auth = betterAuth({
     minPasswordLength: 6,
   },
 
-  // Custom user fields
+  // Custom user fields.
+  //
+  // The admin() plugin already declares `role` itself with `input: false`,
+  // so a visitor may never send `role` during sign-up (Better Auth answers
+  // "role is not allowed to be set"). The sign-up form sends `requestedRole`
+  // instead, and the database hook below turns it into a safe role.
   user: {
     additionalFields: {
-      role: {
-        type: ["vendor", "customer", "admin"],
+      requestedRole: {
+        type: ["vendor", "customer"],
         required: false,
         defaultValue: "customer",
         input: true,
@@ -201,20 +206,24 @@ export const auth = betterAuth({
     },
   },
 
-  // Admin plugin
+  // Admin plugin (owns the real `role` field)
   plugins: [admin()],
 
-  // Set default role and status for every new account.
+  // Set the real role and status for every new account.
+  // "admin" can never be chosen from the sign-up form.
   databaseHooks: {
     user: {
       create: {
         before: async (newUser) => {
-          const role = (newUser as { role?: string }).role
+          const {
+            requestedRole,
+            ...rest
+          } = newUser as { requestedRole?: string } & Record<string, unknown>
 
           return {
             data: {
-              ...newUser,
-              role: role === "vendor" ? "vendor" : "customer",
+              ...rest,
+              role: requestedRole === "vendor" ? "vendor" : "customer",
               status: "unblocked",
             },
           }

@@ -6,7 +6,7 @@ export default async function Page() {
   const session = await getSession()
   
 
-  if (!session?.user) redirect("/login")
+  if (!session?.user) redirect("/sign-in")
 
   const { id, name, email } = session.user
 

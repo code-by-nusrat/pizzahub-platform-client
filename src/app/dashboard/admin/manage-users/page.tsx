@@ -11,17 +11,17 @@ const AdminUsersPage = async () => {
   if (me.role !== "admin") redirect("/dashboard")
 
   // Turn whatever getUsers() returns into plain, serializable rows
-  const raw = ((await getUsers()) ?? []) as Record<string, any>[]
+  const raw = ((await getUsers()) ?? []) as Record<string, unknown>[]
 
   const users: UserRow[] = raw.map((u) => ({
     id: String(u._id ?? u.id ?? u.email),
-    name: u.name ?? "",
+    name: String(u.name ?? ""),
     email: String(u.email ?? "").toLowerCase(),
-    image: u.image ?? null,
-    role: ["admin", "vendor", "customer"].includes(u.role) ? u.role : "customer",
+    image: typeof u.image === "string" ? u.image : null,
+    role: typeof u.role === "string" && ["admin", "vendor", "customer"].includes(u.role) ? (u.role as UserRow["role"]) : "customer",
     emailVerified: Boolean(u.emailVerified),
     blocked: u.status === "blocked",
-    createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : null,
+    createdAt: u.createdAt ? new Date(String(u.createdAt)).toISOString() : null,
   }))
 
   return <UsersManager users={users} currentEmail={me.email.toLowerCase()} />

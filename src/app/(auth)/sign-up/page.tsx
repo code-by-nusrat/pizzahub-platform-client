@@ -153,8 +153,10 @@ export default function SignUpPage() {
           email: email.trim(),
           password,
           image: profileImageUrl.trim() || undefined,
-          ...({ role } as Record<string, unknown>),
-        });
+          // `role` itself is reserved by the admin plugin, so the form asks
+          // for a role here and the server hook maps it to the real one.
+          requestedRole: role,
+        } as Parameters<typeof authClient.signUp.email>[0]);
 
       if (signUpError) {
         toast.error(

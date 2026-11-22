@@ -89,13 +89,13 @@
 import MyMenuPage from "@/app/components/MymenuPage"
 import { getItems, type MenuItem } from "@/lib/vendor-menu-api"
 import { getVendorProfile } from "@/lib/profile-api"
-import { getServerUser } from "@/lib/session"
+import { getSession } from "@/lib/core/server"
 import { requireVendorProfile } from "@/lib/require-vendor-profile"
 
 
 async function getVendorAccount() {
-  const user = await getServerUser()
-  const email = user?.email
+  const session = await getSession()
+  const email = session?.user?.email
 
   if (!email) {
     throw new Error("No email in session")

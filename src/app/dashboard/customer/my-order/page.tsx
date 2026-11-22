@@ -8,7 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"
 const CustomerOrderPage = async () => {
   const session = await getSession()
 
-  if (!session?.user?.email) redirect("/login")
+  if (!session?.user?.email) redirect("/sign-in")
 
   let orders: Parameters<typeof OrdersList>[0]["orders"] = []
   let failed = false

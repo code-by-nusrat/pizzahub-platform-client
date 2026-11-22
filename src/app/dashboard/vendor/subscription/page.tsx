@@ -2,7 +2,7 @@ import SubscriptionPlans from "@/app/components/SubscriptionPlans"
 import TransactionsTable from "@/app/components/TransactionsTable"
 import { BASE_URL } from "@/lib/vendor-menu-api"
 import { getTransactions, type Transaction } from "@/lib/payments-api"
-import { getServerUser } from "@/lib/session"
+import { getSession } from "@/lib/core/server"
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -44,7 +44,10 @@ export default async function SubscriptionPage({
     )
   }
 
-  const user = await getServerUser()
+  const session = await getSession()
+  const user = session?.user as
+    | { email?: string; role?: string }
+    | undefined
   const email = user?.email ?? ""
   const plan = await getPlan(email)
 
