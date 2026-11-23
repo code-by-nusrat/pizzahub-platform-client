@@ -69,13 +69,7 @@ export default async function MenuDetailsPage({
                 <Navbar></Navbar>
                 {/* Top line */}
                 <div className="flex items-center justify-between gap-4 text-sm font-medium text-green-800">
-                    <Link
-                        href="/browse-menu"
-                        className="inline-flex items-center gap-2 underline-offset-4 transition-colors hover:text-green-950 hover:underline"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to the menu
-                    </Link>
+                    
                     <span className="hidden tracking-[0.25em] uppercase sm:block">
                         {item.category}
                     </span>
