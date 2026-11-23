@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { authClient } from "@/lib/auth-client"
+import { clientFetch } from "@/lib/client-api"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -127,7 +128,25 @@ function Field({
     </div>
   )
 }
+async function getVendorProfile(email: string) {
+  const res = await clientFetch(
+    `${BASE_URL}/vendor-profile/${encodeURIComponent(email)}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    }
+  )
 
+  const data = await res.json().catch(() => null)
+
+  if (!res.ok) {
+    throw new Error(
+      data?.message || "Could not load vendor profile."
+    )
+  }
+
+  return data
+}
 export default function AddMenuPage() {
   const router = useRouter()
 
@@ -151,47 +170,29 @@ export default function AddMenuPage() {
   
 
   // Load vendor business name
-  useEffect(() => {
+
+useEffect(() => {
   let isMounted = true
 
   async function getBusinessName() {
     try {
       const sessionResult = await authClient.getSession()
-
       const email = sessionResult.data?.user?.email
-      const token = sessionResult.data?.session?.token
 
-      if (!email || !token) {
+      if (!email) {
         throw new Error("Please log in again.")
       }
 
-      const profileRes = await fetch(
-        `${BASE_URL}/vendor-profile/${encodeURIComponent(email)}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        }
-      )
+      const profileData = await getVendorProfile(email)
 
-      const profileData = await profileRes.json()
-
-      if (!profileRes.ok) {
-        throw new Error(
-          profileData.message || "Could not load vendor profile."
-        )
-      }
-
-      if (!profileData.businessName) {
+      if (!profileData?.businessName?.trim()) {
         throw new Error(
           "Business name not found. Please update your vendor profile."
         )
       }
 
       if (isMounted) {
-        setBusinessName(profileData.businessName)
+        setBusinessName(profileData.businessName.trim())
       }
     } catch (error) {
       console.error("Business name error:", error)
@@ -276,7 +277,6 @@ export default function AddMenuPage() {
   }
 
   
-
 async function handleSubmit(e: FormEvent<HTMLFormElement>) {
   e.preventDefault()
 
@@ -284,74 +284,37 @@ async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 
   setSubmitted(true)
 
+  // 1. Validate form
   if (Object.keys(errors).length > 0) {
     toast.error("Check the highlighted fields.")
     return
   }
 
+  // 2. Check vendor profile
   if (loadingProfile) {
     toast.info("Please wait. Loading your business name.")
     return
   }
 
   if (!businessName.trim()) {
-    toast.error("Business name not found. Please check your profile.")
+    toast.error("Business name not found. Please update your profile.")
     return
   }
 
-  if (!form.imageFile) return
+  if (!form.imageFile) {
+    toast.error("Please upload an item image.")
+    return
+  }
 
   try {
     setSaving(true)
 
-    // 1. Get authenticated vendor session
+    // 3. Get logged-in user's email
     const sessionResult = await authClient.getSession()
-
     const email = sessionResult.data?.user?.email
-    const token = sessionResult.data?.session?.token
 
-    if (!email || !token) {
+    if (!email) {
       throw new Error("Your session has expired. Please log in again.")
-    }
-
-    // 2. Get the latest vendor profile
-    const profileRes = await fetch(
-      `${BASE_URL}/vendor-profile/${encodeURIComponent(email)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      }
-    )
-
-    const profileData = await profileRes.json()
-
-    if (!profileRes.ok) {
-      throw new Error(
-        profileData.message || "Could not verify your vendor profile."
-      )
-    }
-
-    const profileBusinessName = profileData.businessName?.trim()
-
-    if (!profileBusinessName) {
-      throw new Error("Business name is missing from your vendor profile.")
-    }
-
-    // 3. Compare business names
-    if (
-      profileBusinessName.toLowerCase() !==
-      businessName.trim().toLowerCase()
-    ) {
-      setBusinessName(profileBusinessName)
-
-      toast.error(
-        "Business name changed. Please check the updated name and try again."
-      )
-
-      return
     }
 
     // 4. Upload image
@@ -361,7 +324,7 @@ async function handleSubmit(e: FormEvent<HTMLFormElement>) {
       throw new Error("Image upload failed.")
     }
 
-    // 5. Create the menu item (the helper attaches the session token)
+    // 5. Add menu item
     await addItem({
       email,
       name: form.name.trim(),
@@ -370,13 +333,15 @@ async function handleSubmit(e: FormEvent<HTMLFormElement>) {
       location: form.location.trim(),
       description: form.description.trim(),
       image: imageUrl,
-      businessName: profileBusinessName,
+      businessName: businessName.trim(),
     })
 
+    // 6. Success
     toast.success("Item added. It will appear after approval.")
 
     router.push("/dashboard/vendor/menu")
     router.refresh()
+
   } catch (error) {
     console.error("Add menu item error:", error)
 
@@ -389,6 +354,8 @@ async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     setSaving(false)
   }
 }
+
+
 
 
   return (

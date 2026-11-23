@@ -644,6 +644,7 @@ import { Bricolage_Grotesque } from "next/font/google"
 import { useCart } from "@/lib/cart"
 import { placeOrder } from "@/lib/order-actions"
 import Navbar from "./Navbar"
+import Footer from "./Footer"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -1222,6 +1223,7 @@ const PaymentPage = ({ customer }: { customer: Customer }) => {
             Thank you for choosing local food businesses.
           </p>
         </div>
+        
       </div>
     </main>
   )

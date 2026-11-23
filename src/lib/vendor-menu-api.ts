@@ -30,12 +30,39 @@ export type NewMenuItem = {
   businessName: string
 }
 
-async function request(url: string, init: RequestInit, fallback: string) {
-  const res = await fetch(url, init)
-  const data = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(data?.message || fallback)
-  return data
+
+async function request(
+  url: string,
+  init: RequestInit,
+  fallback: string
+) {
+  try {
+    const res = await fetch(url, init)
+    const contentType = res.headers.get("content-type")
+
+    if (!contentType?.includes("application/json")) {
+      const message = await res.text()
+      throw new Error(
+        message || `Server returned ${res.status}`
+      )
+    }
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data?.message || fallback)
+    }
+
+    return data
+  } catch (error) {
+    console.error("API request failed:", url, error)
+
+    throw error instanceof Error
+      ? error
+      : new Error(fallback)
+  }
 }
+
 
 // Same as request(), but attaches the signed-in user's Bearer token.
 async function authRequest(
@@ -103,19 +130,51 @@ export function changeAvailability(id: string, isAvailable: boolean) {
 }
 
 // Public menu: only approved items, with optional filters from the URL
+// export async function getMenu(
+//   params: URLSearchParams | Record<string, string> = {}
+// ): Promise<MenuItem[]> {
+//   const query = new URLSearchParams(params)
+
+//   const data = await request(
+//     `${BASE_URL}/browse-menu?${query.toString()}`,
+//     { cache: "no-store" },
+//     "Failed to load menu"
+//   )
+
+//   return Array.isArray(data) ? data : []
+// }
+
+
 export async function getMenu(
   params: URLSearchParams | Record<string, string> = {}
 ): Promise<MenuItem[]> {
-  const query = new URLSearchParams(params)
+  const query = new URLSearchParams()
+
+  const entries =
+    params instanceof URLSearchParams
+      ? Array.from(params.entries())
+      : Object.entries(params)
+
+  entries.forEach(([key, value]) => {
+    const cleaned = value.trim()
+    if (cleaned) query.set(key, cleaned)
+  })
+
+  const url = `${BASE_URL}/browse-menu${
+    query.size ? `?${query.toString()}` : ""
+  }`
+
+  console.log("Fetching menu from:", url)
 
   const data = await request(
-    `${BASE_URL}/browse-menu?${query.toString()}`,
+    url,
     { cache: "no-store" },
     "Failed to load menu"
   )
 
   return Array.isArray(data) ? data : []
 }
+
 
 // Single approved dish for the details page. Returns null if it doesn't exist.
 export async function getMenuItem(id: string): Promise<MenuItem | null> {

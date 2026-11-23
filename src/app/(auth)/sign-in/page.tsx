@@ -63,20 +63,41 @@ export default function SignInPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setError("");
-    setGoogleLoading(true);
+  
+const handleGoogleSignIn = async () => {
+  setError("");
+  setGoogleLoading(true);
 
-    try {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-      });
-    } catch {
-      setError("Google sign-in failed. Please try again.");
+  try {
+    const { data, error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+      errorCallbackURL: "/sign-in",
+    });
+
+    if (error) {
+      console.error("Google authentication error:", error);
+      setError(error.message || "Google sign-in failed.");
       setGoogleLoading(false);
+      return;
     }
-  };
+
+    // Better Auth normally redirects automatically.
+    // This handles a returned URL if automatic redirect
+    // did not happen.
+    if (data?.url) {
+      window.location.assign(data.url);
+      return;
+    }
+
+    setGoogleLoading(false);
+    setError("Google authentication did not return a redirect URL.");
+  } catch (err) {
+    console.error("Google sign-in failed:", err);
+    setError("Unable to connect to Google. Please try again.");
+    setGoogleLoading(false);
+  }
+};
 
   return (
     <main

@@ -1,48 +1,69 @@
 
-import { betterAuth } from "better-auth"
-import { MongoClient } from "mongodb"
-import { mongodbAdapter } from "@better-auth/mongo-adapter"
+import { betterAuth } from "better-auth";
+import { MongoClient } from "mongodb";
+import { mongodbAdapter } from "@better-auth/mongo-adapter";
 
-
-const uri = process.env.BETTER_AUTH_DB_URI
+// ---------- Environment Variables ----------
+const uri = process.env.BETTER_AUTH_DB_URI;
 
 if (!uri) {
-  throw new Error("BETTER_AUTH_DB_URI is missing")
+  throw new Error("BETTER_AUTH_DB_URI is missing");
 }
 
-// Reuse MongoDB client during Next.js hot reloads.
+if (!process.env.BETTER_AUTH_URL) {
+  throw new Error("BETTER_AUTH_URL is missing");
+}
+
+if (!process.env.BETTER_AUTH_SECRET) {
+  throw new Error("BETTER_AUTH_SECRET is missing");
+}
+
+// ---------- MongoDB Connection ----------
 const globalForMongo = globalThis as typeof globalThis & {
-  mongoClient?: MongoClient
-}
+  mongoClient?: MongoClient;
+};
 
-const client = globalForMongo.mongoClient ?? new MongoClient(uri)
+const client =
+  globalForMongo.mongoClient ?? new MongoClient(uri);
 
 if (!globalForMongo.mongoClient) {
-  globalForMongo.mongoClient = client
+  globalForMongo.mongoClient = client;
 }
 
-const db = client.db("pizzahubdb")
+const db = client.db("pizzahubdb");
 
+// ---------- Trusted Origins ----------
+const trustedOrigins = [
+  "http://localhost:3000",
+  "https://pizzahub-client-liart-gamma.vercel.app",
+];
+
+// ---------- Better Auth ----------
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+
+  trustedOrigins,
 
   database: mongodbAdapter(db, {
     client,
   }),
 
-  // Email and password authentication
+  // ---------- Email & Password ----------
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 6,
   },
 
-  // Custom user fields.
-  //
-  // The admin() plugin used to own `role`. It has been removed, so `role` is
-  // declared here with `input: false`: the browser may never send or change it.
-  // The sign-up form sends `requestedRole` instead, and the database hook below
-  // turns that into a safe role ("admin" can never be chosen publicly).
+  // ---------- Google Authentication ----------
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
+
+  // ---------- Custom User Fields ----------
   user: {
     additionalFields: {
       role: {
@@ -68,8 +89,7 @@ export const auth = betterAuth({
     },
   },
 
-  // Set the real role and status for every new account.
-  // "admin" can never be chosen from the sign-up form.
+  // ---------- Database Hooks ----------
   databaseHooks: {
     user: {
       create: {
@@ -77,29 +97,22 @@ export const auth = betterAuth({
           const {
             requestedRole,
             ...rest
-          } = newUser as { requestedRole?: string } & Record<string, unknown>
+          } = newUser as {
+            requestedRole?: string;
+          } & Record<string, unknown>;
 
           return {
             data: {
               ...rest,
-              role: requestedRole === "vendor" ? "vendor" : "customer",
+              role:
+                requestedRole === "vendor"
+                  ? "vendor"
+                  : "customer",
               status: "unblocked",
             },
-          }
+          };
         },
       },
     },
   },
-
-  // Google authentication
-  socialProviders:
-    process.env.GOOGLE_CLIENT_ID &&
-    process.env.GOOGLE_CLIENT_SECRET
-      ? {
-          google: {
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          },
-        }
-      : {},
-})
+});

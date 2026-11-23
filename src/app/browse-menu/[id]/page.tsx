@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth"
 import { getMenuItem } from "@/lib/vendor-menu-api"
 import OrderPanel from "./OrderPanel"
 import Navbar from "@/app/components/Navbar"
+import Footer from "@/app/components/Footer"
 
 const serif = Fraunces({ subsets: ["latin"], style: ["normal", "italic"] })
 
@@ -199,6 +200,7 @@ export default async function MenuDetailsPage({
                         ))}
                     </ol>
                 </section>
+                
             </div>
         </main>
     )
