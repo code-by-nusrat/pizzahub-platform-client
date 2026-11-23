@@ -68,7 +68,8 @@ export default function BrowseMenu({ initial }: { initial: Filters }) {
         })
         if (id !== requestId.current) return
 
-        const available = all.filter((item) => item.isAvailable)
+        // const available = all.filter((item) => item.isAvailable)
+        const available = all.filter((item) => item.isAvailable !== false)
         setItems(available)
         setStatus("ready")
 
