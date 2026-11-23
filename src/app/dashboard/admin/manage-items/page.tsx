@@ -178,76 +178,90 @@ export default function ManageItemsPage() {
 
     // Update approval status. The backend only accepts "approved" or
     // "pending": unpublishing an item means moving it back to pending.
-    const updateApproval = async (
-        id: string,
-        approvalStatus: "approved" | "pending"
-    ) => {
-        const action =
-            approvalStatus === "approved" ? "approve" : "hide from customers"
+   
+// Update approval status
+const updateApproval = async (
+    id: string,
+    approvalStatus: "approved" | "pending"
+) => {
+    const action =
+        approvalStatus === "approved" ? "approve" : "hide from customers"
 
-        if (
-            !(await confirmWithToast(
-                `Are you sure you want to ${action} this item?`
-            ))
-        ) {
-            return
+    if (
+        !(await confirmWithToast(
+            `Are you sure you want to ${action} this item?`
+        ))
+    ) {
+        return
+    }
+
+    try {
+        setBusyId(id)
+
+        const response = await clientFetch(
+            `${API_URL}/menu/${id}/moderation`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ approvalStatus }),
+            }
+        )
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || `Could not ${action} item.`
+            )
         }
 
-        try {
-            setBusyId(id)
+        // Update the frontend menu item
+        setItems((previous) =>
+            previous.map((item) =>
+                item._id === id
+                    ? {
+                          ...item,
+                          approvalStatus: data.approvalStatus,
+                          isAvailable: data.isAvailable,
+                      }
+                    : item
+            )
+        )
 
-            const response = await clientFetch(
-                `${API_URL}/menu/${id}/moderation`,
+        // Special warning when the vendor already has 3 active items
+        if (
+            approvalStatus === "approved" &&
+            data.approvalStatus === "approved" &&
+            data.isAvailable === false &&
+            data.limit !== null
+        ) {
+            toast.warning(
+                `Warning! This vendor already has ${data.activeItems} active menu items. The item is approved but remains unavailable. Free vendors can publish only ${data.limit} items.`,
                 {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ approvalStatus }),
+                    autoClose: 6000,
                 }
             )
-
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || `Could not ${action} item.`
-                )
-            }
-
-            setItems((previous) =>
-                previous.map((item) =>
-                    item._id === id
-                        ? {
-                              ...item,
-                              approvalStatus,
-                              isAvailable: Boolean(data.isAvailable),
-                          }
-                        : item
-                )
+        } else {
+            toast.success(
+                approvalStatus === "approved"
+                    ? "Menu item approved successfully!"
+                    : "Item hidden from customers."
             )
-
-            if (approvalStatus === "approved" && !data.isAvailable) {
-                toast.warning(
-                    "Approved, but this vendor has reached the maximum number of active dishes on the free plan."
-                )
-            } else {
-                toast.success(
-                    approvalStatus === "approved"
-                        ? "Item approved successfully!"
-                        : "Item hidden from customers."
-                )
-            }
-        } catch (err) {
-            toast.error(
-                err instanceof Error
-                    ? err.message
-                    : "Something went wrong."
-            )
-        } finally {
-            setBusyId(null)
         }
+
+    } catch (err) {
+        toast.error(
+            err instanceof Error
+                ? err.message
+                : "Something went wrong."
+        )
+    } finally {
+        setBusyId(null)
     }
+}
+
 
     // Activate or deactivate an approved item
     const updateAvailability = async (item: MenuItem) => {

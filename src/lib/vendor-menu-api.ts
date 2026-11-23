@@ -1,3 +1,4 @@
+
 import { clientFetch } from "./client-api"
 
 export const BASE_URL =
@@ -30,7 +31,7 @@ export type NewMenuItem = {
   businessName: string
 }
 
-
+// Common API request
 async function request(
   url: string,
   init: RequestInit,
@@ -42,9 +43,7 @@ async function request(
 
     if (!contentType?.includes("application/json")) {
       const message = await res.text()
-      throw new Error(
-        message || `Server returned ${res.status}`
-      )
+      throw new Error(message || `Server returned ${res.status}`)
     }
 
     const data = await res.json()
@@ -63,8 +62,7 @@ async function request(
   }
 }
 
-
-// Same as request(), but attaches the signed-in user's Bearer token.
+// Authenticated API request
 async function authRequest(
   url: string,
   init: RequestInit,
@@ -72,31 +70,45 @@ async function authRequest(
 ) {
   const res = await clientFetch(url, init)
   const data = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(data?.message || fallback)
+
+  if (!res.ok) {
+    throw new Error(data?.message || fallback)
+  }
+
   return data
 }
 
+// JSON request helper
 const json = (method: string, body: unknown): RequestInit => ({
   method,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+  },
   body: JSON.stringify(body),
 })
 
-// Uploads through the Next.js route so the ImgBB key stays on the server
+// Upload menu image through Next.js API route
 export async function uploadMenuImage(file: File): Promise<string> {
   const fd = new FormData()
   fd.append("image", file)
 
   const data = await request(
-    "/api/imgbb", // must match app/api/imgbb/route.ts
-    { method: "POST", body: fd },
+    "/api/imgbb",
+    {
+      method: "POST",
+      body: fd,
+    },
     "Image upload failed"
   )
 
-  if (!data?.url) throw new Error("Image upload returned no URL")
+  if (!data?.url) {
+    throw new Error("Image upload returned no URL")
+  }
+
   return data.url
 }
 
+// Add menu item
 export function addItem(item: NewMenuItem) {
   return authRequest(
     `${BASE_URL}/menu`,
@@ -105,46 +117,42 @@ export function addItem(item: NewMenuItem) {
   )
 }
 
-export function updateItem(id: string, payload: Partial<MenuItem>) {
+// Update menu item
+export function updateItem(
+  id: string,
+  payload: Partial<MenuItem>
+) {
   return authRequest(
-    `${BASE_URL}/menu/${id}`,
+    `${BASE_URL}/menu/${encodeURIComponent(id)}`,
     json("PUT", payload),
     "Failed to update menu item"
   )
 }
 
+// Delete menu item
 export function deleteItem(id: string) {
   return authRequest(
-    `${BASE_URL}/menu/${id}`,
-    { method: "DELETE" },
+    `${BASE_URL}/menu/${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+    },
     "Failed to delete menu item"
   )
 }
 
-export function changeAvailability(id: string, isAvailable: boolean) {
+// Activate or deactivate menu item
+export function changeAvailability(
+  id: string,
+  isAvailable: boolean
+) {
   return authRequest(
-    `${BASE_URL}/menu/${id}/availability`,
+    `${BASE_URL}/menu/${encodeURIComponent(id)}/availability`,
     json("PATCH", { isAvailable }),
     "Failed to update availability"
   )
 }
 
-// Public menu: only approved items, with optional filters from the URL
-// export async function getMenu(
-//   params: URLSearchParams | Record<string, string> = {}
-// ): Promise<MenuItem[]> {
-//   const query = new URLSearchParams(params)
-
-//   const data = await request(
-//     `${BASE_URL}/browse-menu?${query.toString()}`,
-//     { cache: "no-store" },
-//     "Failed to load menu"
-//   )
-
-//   return Array.isArray(data) ? data : []
-// }
-
-
+// Get public menu
 export async function getMenu(
   params: URLSearchParams | Record<string, string> = {}
 ): Promise<MenuItem[]> {
@@ -157,33 +165,45 @@ export async function getMenu(
 
   entries.forEach(([key, value]) => {
     const cleaned = value.trim()
-    if (cleaned) query.set(key, cleaned)
+
+    if (cleaned) {
+      query.set(key, cleaned)
+    }
   })
 
   const url = `${BASE_URL}/browse-menu${
     query.size ? `?${query.toString()}` : ""
   }`
 
-  console.log("Fetching menu from:", url)
-
   const data = await request(
     url,
-    { cache: "no-store" },
+    {
+      cache: "no-store",
+    },
     "Failed to load menu"
   )
 
   return Array.isArray(data) ? data : []
 }
 
+// Get one public menu item
+export async function getMenuItem(
+  id: string
+): Promise<MenuItem | null> {
+  const res = await fetch(
+    `${BASE_URL}/browse-menu/${encodeURIComponent(id)}`,
+    {
+      cache: "no-store",
+    }
+  )
 
-// Single approved dish for the details page. Returns null if it doesn't exist.
-export async function getMenuItem(id: string): Promise<MenuItem | null> {
-  const res = await fetch(`${BASE_URL}/browse-menu/${encodeURIComponent(id)}`, {
-    cache: "no-store",
-  })
+  if (res.status === 400 || res.status === 404) {
+    return null
+  }
 
-  if (res.status === 400 || res.status === 404) return null
-  if (!res.ok) throw new Error("Failed to load menu item")
+  if (!res.ok) {
+    throw new Error("Failed to load menu item")
+  }
 
   return (await res.json()) as MenuItem
 }
