@@ -64,7 +64,8 @@ import { toast } from "react-toastify"
 import { Bricolage_Grotesque } from "next/font/google"
 
 import { authClient } from "@/lib/auth-client"
-import { updateProfile, type Profile } from "@/lib/profile-api"
+import { updateProfileAction } from "@/lib/actions/profile-actions"
+import type { Profile } from "@/lib/profile-api"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -481,13 +482,19 @@ export default function CustomerProfile({
             setSaving(true)
             setFeedback(null)
 
-            const updated = await updateProfile(saved.email, {
+            const result = await updateProfileAction({
                 name: form.name.trim(),
                 phone: form.phone.trim(),
                 address: form.address.trim(),
                 bio: form.bio.trim(),
                 image: form.image.trim(),
             })
+
+            if (!result.success) {
+                throw new Error(result.message)
+            }
+
+            const updated = result.profile
 
             const nextProfile: Profile = {
                 ...saved,

@@ -1,34 +1,12 @@
+import { redirect } from "next/navigation"
+
 import SubscriptionPlans from "@/app/components/SubscriptionPlans"
 import TransactionsTable from "@/app/components/TransactionsTable"
-import { BASE_URL } from "@/lib/vendor-menu-api"
-import { getTransactions, type Transaction } from "@/lib/payments-api"
 import { getSession } from "@/lib/core/server"
+import { getTransactions } from "@/lib/payments-api"
+import { getVendorPlan } from "@/lib/vendor-menu-server"
 
 type SearchParams = Record<string, string | string[] | undefined>
-
-type Plan = {
-  premium: boolean
-  plan: string
-  activeItemLimit: number | null
-}
-
-// After a Stripe checkout, /payments/checkout-verify sets `premium: true` on
-// the account. Read it so the page shows the plan the vendor actually has.
-async function getPlan(email: string): Promise<Plan | null> {
-  if (!email) return null
-
-  try {
-    const res = await fetch(
-      `${BASE_URL}/subscription/${encodeURIComponent(email)}`,
-      { cache: "no-store" }
-    )
-    if (!res.ok) return null
-
-    return await res.json()
-  } catch {
-    return null
-  }
-}
 
 export default async function SubscriptionPage({
   searchParams,
@@ -36,56 +14,46 @@ export default async function SubscriptionPage({
   searchParams: Promise<SearchParams>
 }) {
   const params = await searchParams
-  const { canceled } = params
-
-  if (canceled) {
-    console.log(
-      "Order canceled -- continue to shop around and check out when you're ready."
-    )
-  }
 
   const session = await getSession()
-  const user = session?.user as
-    | { email?: string; role?: string }
-    | undefined
-  const email = user?.email ?? ""
-  const plan = await getPlan(email)
+  if (!session?.user) redirect("/sign-in")
 
-  let transactions: Transaction[] = []
-  if (email) {
-    transactions = await getTransactions({ vendorEmail: email })
-  }
+  const role = (session.user as { role?: string }).role
+  const isVendor = role === "vendor"
+
+  // Both helpers attach the Better Auth token, which is what the backend
+  // uses to decide which vendor's plan and payments may be read.
+  const plan = isVendor ? await getVendorPlan() : null
+  const currentPlan: "free" | "premium" = plan?.premium ? "premium" : "free"
+
+  const transactions = isVendor ? await getTransactions() : []
 
   return (
-    <div className="bg-[#FFF8EC]">
-      <SubscriptionPlans
-        searchParams={params}
-        currentPlan={plan?.premium ? "premium" : "free"}
-        isVendor={user?.role === "vendor"}
-      />
-
-      {/* Verified payments for this account */}
-      <section className="mx-auto max-w-5xl px-4 pb-16 sm:px-8">
-        <div className="mb-4 flex flex-col justify-between gap-1 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="text-2xl font-extrabold text-[#2B1B14]">
-              Billing history
-            </h2>
-            <p className="mt-1 text-sm text-[#7A6258]">
-              Vendor info, plan, amount, payment status and transaction date.
-            </p>
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7A6258]">
-            {plan?.premium ? "Premium plan" : "Free plan"}
-          </p>
-        </div>
-
-        <TransactionsTable
-          transactions={transactions}
-          showVendor={false}
-          emptyMessage="No payments yet — you are on the Free plan."
+    <main className="min-h-screen bg-[#FFF8EC] px-4 py-8 sm:px-8 lg:py-12">
+      <div className="mx-auto max-w-5xl">
+        <SubscriptionPlans
+          currentPlan={currentPlan}
+          isVendor={isVendor}
+          searchParams={params}
         />
-      </section>
-    </div>
+
+        <section className="mt-10">
+          <h2 className="text-xl font-extrabold text-[#2B1B14]">
+            Payment history
+          </h2>
+          <p className="mt-1 text-sm text-[#7A6258]">
+            Verified Stripe payments for your subscription appear here.
+          </p>
+
+          <div className="mt-4">
+            <TransactionsTable
+              transactions={transactions}
+              showVendor={false}
+              emptyMessage="No subscription payments yet."
+            />
+          </div>
+        </section>
+      </div>
+    </main>
   )
 }

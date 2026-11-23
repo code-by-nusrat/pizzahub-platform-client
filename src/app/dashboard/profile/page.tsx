@@ -7,7 +7,8 @@ import { ArrowLeft, Ban, CircleAlert } from "lucide-react"
 
 import ProfilePage from "@/app/components/ProfilePage"
 import { auth } from "@/lib/auth"
-import { getProfile, type Profile } from "@/lib/profile-api"
+import { getProfile } from "@/lib/profile-server"
+import type { Profile } from "@/lib/profile-api"
 
 export const metadata: Metadata = {
   title: "Profile | PizzaHub",
@@ -31,11 +32,26 @@ export default async function ProfileRoute({
 
   const email = session.user.email
 
+  // Get the user's role before requesting the profile.
+  const sessionRole = (
+    session.user as { role?: string }
+  ).role?.toLowerCase()
+
   let profile: Profile | null = null
   let isBlocked = false
 
   try {
-    profile = await getProfile(email)
+    if (sessionRole !== "vendor" && sessionRole !== "customer") {
+      throw new Error(
+        `Invalid or missing user role: ${sessionRole || "undefined"}`
+      )
+    }
+
+    // Request the correct endpoint according to the user's role.
+    profile = await getProfile(
+      email,
+      sessionRole as "vendor" | "customer"
+    )
   } catch (error) {
     const message =
       error instanceof Error ? error.message : ""
@@ -81,6 +97,7 @@ export default async function ProfileRoute({
     )
   }
 
+  // Profile loading error
   if (!profile) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#FFF8EC] px-4 py-16">
@@ -110,7 +127,6 @@ export default async function ProfileRoute({
     )
   }
 
-  const sessionRole = (session.user as { role?: string }).role
   const role = profile.role || sessionRole || "customer"
 
   return (
@@ -121,6 +137,7 @@ export default async function ProfileRoute({
           className="mx-auto mt-6 flex max-w-3xl items-start gap-3 border-l-2 border-[#E8452C] bg-white px-4 py-3 text-sm text-[#2B1B14] shadow-sm"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0 text-[#E8452C]" />
+
           <p>
             <span className="font-bold">
               Finish your restaurant profile.

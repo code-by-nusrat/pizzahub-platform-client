@@ -28,9 +28,18 @@ export async function POST() {
     }
 
     // Already Premium: a second checkout must never be started.
+    const token = userSession.session?.token
+
+    if (!token) {
+      return NextResponse.redirect(`${origin}/sign-in`, 303)
+    }
+
     const planRes = await fetch(
       `${API}/subscription/${encodeURIComponent(userSession.user.email)}`,
-      { cache: 'no-store' }
+      {
+        cache: 'no-store',
+        headers: { authorization: `Bearer ${token}` },
+      }
     ).catch(() => null)
 
     if (!planRes?.ok) {

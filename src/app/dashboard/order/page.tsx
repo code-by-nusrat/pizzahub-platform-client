@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { getSession } from "@/lib/core/server"
+import { getSession, getToken } from "@/lib/core/server"
 import VendorOrdersList from "./VendorOrdersList"
 import { requireVendorProfile } from "@/lib/require-vendor-profile"
 
@@ -15,15 +15,18 @@ const OrderPage = async () => {
   const role = (session.user as { role?: string }).role
   if (role !== "vendor") redirect("/dashboard")
 await requireVendorProfile()
+  const token = await getToken()
+
   let orders = []
   let businessName = ""
   let errorMessage: string | null = null
 
   try {
-    const res = await fetch(
-      `${API}/vendor/orders?email=${encodeURIComponent(session.user.email)}`,
-      { cache: "no-store" }
-    )
+    // The backend reads the vendor from the token, not from a query string.
+    const res = await fetch(`${API}/vendor/orders`, {
+      cache: "no-store",
+      headers: { authorization: `Bearer ${token}` },
+    })
     const data = await res.json().catch(() => null)
 
     if (res.ok && data?.success) {

@@ -12,6 +12,7 @@
 
 import { ArrowRight, Clock, Leaf, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 // 1) Colors. Change them here and the whole banner updates.
 const COLORS = {
@@ -181,6 +182,7 @@ export default function Hero() {
 
                         {/* CTA button */}
                         <div className="mt-5 flex sm:mt-8">
+                            <Link href='/browse-menu'>
                             <Button
                                 size="lg"
                                 className="group h-10 rounded-full px-4 text-xs font-bold text-white shadow-lg hover:opacity-90 sm:h-12 sm:px-6 sm:text-base lg:h-14 lg:px-8"
@@ -189,6 +191,7 @@ export default function Hero() {
                                 Explore Pizza Menu
                                 <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1 sm:ml-2 sm:h-5 sm:w-5" />
                             </Button>
+                            </Link>
                         </div>
 
                         {/* Small trust chips (hidden on phones so the layout stays clean) */}

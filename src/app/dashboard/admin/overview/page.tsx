@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { Bricolage_Grotesque } from "next/font/google"
 
-import { getSession } from "@/lib/core/server"
+import { getSession, getToken } from "@/lib/core/server"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -36,12 +36,12 @@ type Stat = {
   href: string
 }
 
-async function getStats(email: string): Promise<AdminStats | null> {
+async function getStats(token: string): Promise<AdminStats | null> {
   try {
-    const res = await fetch(
-      `${API}/admin/stats?email=${encodeURIComponent(email)}`,
-      { cache: "no-store" }
-    )
+    const res = await fetch(`${API}/admin/stats`, {
+      cache: "no-store",
+      headers: { authorization: `Bearer ${token}` },
+    })
     if (!res.ok) return null
     return (await res.json()) as AdminStats
   } catch {
@@ -56,7 +56,10 @@ const AdminOverviewPage = async () => {
   const role = (session.user as { role?: string }).role
   if (role !== "admin") redirect("/unauthorized")
 
-  const stats = await getStats(session.user.email)
+  const token = await getToken()
+
+  // The token identifies the admin; no email query is needed.
+  const stats = await getStats(token)
 
   const tiles: Stat[] = [
     {

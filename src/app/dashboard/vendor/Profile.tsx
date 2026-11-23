@@ -42,12 +42,14 @@ import { toast } from "react-toastify"
 import { Bricolage_Grotesque } from "next/font/google"
 
 import { authClient } from "@/lib/auth-client"
-import { updateProfile, type Profile } from "@/lib/profile-api"
+
+import type { Profile } from "@/lib/profile-api"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { updateProfileAction } from "@/lib/actions/profile-actions"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -112,7 +114,7 @@ function isImageValue(value: string) {
   }
 }
 
-function validate(form: FormState, isVendor: boolean): FormErrors {
+function validate(form: FormState): FormErrors {
   const errors: FormErrors = {}
 
   const name = form.name.trim()
@@ -140,21 +142,20 @@ function validate(form: FormState, isVendor: boolean): FormErrors {
     errors.bio = `Maximum ${BIO_LIMIT} characters allowed.`
   }
 
-  if (isVendor) {
-    if (businessName.length < 2) {
-      errors.businessName = "Restaurant name must contain at least 2 characters."
-    } else if (businessName.length > 80) {
-      errors.businessName = "Restaurant name cannot exceed 80 characters."
-    }
+  if (businessName.length < 2) {
+    errors.businessName =
+      "Restaurant name must contain at least 2 characters."
+  } else if (businessName.length > 80) {
+    errors.businessName =
+      "Restaurant name cannot exceed 80 characters."
+  }
 
-    // These two fields are optional.
-    if (businessLocation.length > 120) {
-      errors.businessLocation = "Location cannot exceed 120 characters."
-    }
+  if (businessLocation.length > 120) {
+    errors.businessLocation = "Location cannot exceed 120 characters."
+  }
 
-    if (openingHours.length > 80) {
-      errors.openingHours = "Opening hours cannot exceed 80 characters."
-    }
+  if (openingHours.length > 80) {
+    errors.openingHours = "Opening hours cannot exceed 80 characters."
   }
 
   const image = form.image.trim()
@@ -303,7 +304,7 @@ function Field({
 const inputClass =
   "h-12 rounded-xl border-[#2B1B14]/10 bg-[#FFFCF7] px-3.5 text-[#2B1B14] focus-visible:border-[#E8452C] focus-visible:ring-[#E8452C]/15"
 
-export default function CustomerProfile({
+export default function VendorProfile({
   initialProfile,
 }: {
   initialProfile: Profile
@@ -323,23 +324,18 @@ export default function CustomerProfile({
 
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [imageBusy, setImageBusy] = useState(false)
+
   const [imageMode, setImageMode] = useState<ImageMode>(
     initialProfile.image?.startsWith("data:") ? "upload" : "link"
   )
+
   const [dragging, setDragging] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const isVendor = saved.role === "vendor"
-  const isAdmin = saved.role === "admin"
+  const roleLabel = "Vendor"
 
-  const roleLabel = isVendor
-    ? "Vendor"
-    : isAdmin
-      ? "Admin"
-      : "Customer"
-
-  const errors = validate(form, isVendor)
+  const errors = validate(form)
   const hasErrors = Object.keys(errors).length > 0
 
   const shownErrors: FormErrors = submitted
@@ -355,24 +351,16 @@ export default function CustomerProfile({
 
   const canSubmit = dirty && !saving && !imageBusy
 
-  const trackedFields = isVendor
-    ? [
-        form.name,
-        form.phone,
-        form.address,
-        form.bio,
-        form.image,
-        form.businessName,
-        form.businessLocation,
-        form.openingHours,
-      ]
-    : [
-        form.name,
-        form.phone,
-        form.address,
-        form.bio,
-        form.image,
-      ]
+  const trackedFields = [
+    form.name,
+    form.phone,
+    form.address,
+    form.bio,
+    form.image,
+    form.businessName,
+    form.businessLocation,
+    form.openingHours,
+  ]
 
   const filledFields = trackedFields.filter(
     (value) => value.trim().length > 0
@@ -495,7 +483,7 @@ export default function CustomerProfile({
 
     setSubmitted(true)
 
-    const currentErrors = validate(form, isVendor)
+    const currentErrors = validate(form)
 
     if (Object.keys(currentErrors).length > 0) {
       setFeedback({
@@ -524,28 +512,32 @@ export default function CustomerProfile({
       setSaving(true)
       setFeedback(null)
 
-      const payload: Partial<FormState> = {
+      const payload = {
         name: form.name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
         bio: form.bio.trim(),
         image: form.image.trim(),
+        businessName: form.businessName.trim(),
+        businessLocation: form.businessLocation.trim(),
+        openingHours: form.openingHours.trim(),
       }
 
-      if (isVendor) {
-        payload.businessName = form.businessName.trim()
-        payload.businessLocation = form.businessLocation.trim()
-        payload.openingHours = form.openingHours.trim()
+      const result = await updateProfileAction(payload)
+
+      if (!result.success) {
+        throw new Error(result.message)
       }
 
-      const updated = await updateProfile(saved.email, payload)
+      const updated = result.profile as Partial<Profile> | undefined
 
       const nextProfile: Profile = {
         ...saved,
+        ...payload,
         ...updated,
-        email: updated.email || saved.email,
-        role: updated.role || saved.role,
-        createdAt: updated.createdAt || saved.createdAt,
+        email: saved.email,
+        role: saved.role,
+        createdAt: updated?.createdAt || saved.createdAt,
       }
 
       setSaved(nextProfile)
@@ -558,29 +550,31 @@ export default function CustomerProfile({
       setFeedback({
         type: "success",
         title: "Profile updated",
-        message: "Your profile information has been saved successfully.",
+        message:
+          "Your restaurant and personal information have been saved successfully.",
       })
 
-      toast.success("Your profile has been updated!")
+      toast.success("Your vendor profile has been updated!")
 
-      void authClient
-        .updateUser({
+      // Sync name and image with Better Auth.
+      try {
+        await authClient.updateUser({
           name: form.name.trim(),
           image: form.image.trim(),
         })
-        .catch((syncError) => {
-          console.warn(
-            "Profile saved, but account details could not be synced:",
-            syncError
-          )
-        })
+      } catch (syncError) {
+        console.warn(
+          "Profile saved, but Better Auth details could not be synced:",
+          syncError
+        )
+      }
     } catch (error) {
-      console.error("Profile update error:", error)
+      console.error("Vendor profile update error:", error)
 
       const message =
         error instanceof Error
           ? error.message
-          : "Could not update profile."
+          : "Could not update your vendor profile."
 
       setFeedback({
         type: "error",
@@ -633,27 +627,16 @@ export default function CustomerProfile({
             <h1
               className={`${display.className} text-4xl font-extrabold leading-[1.05] tracking-tight text-[#2B1B14] sm:text-5xl`}
             >
-              {isVendor
-                ? "Make your restaurant stand out."
-                : isAdmin
-                  ? "Keep your account in shape."
-                  : "Make every slice feel like yours."}
+              Make your restaurant stand out.
             </h1>
 
             <p className="mt-4 max-w-xl text-sm leading-6 text-[#7A6258] sm:text-base">
-              {isVendor
-                ? "Manage your restaurant details, location, opening hours and personal information."
-                : "Update your name, photo and contact details so every order feels personal."}
+              Manage your restaurant details, location, opening hours and
+              personal information.
             </p>
 
             <Link
-              href={
-                isVendor
-                  ? "/dashboard/vendor/overview"
-                  : isAdmin
-                    ? "/dashboard"
-                    : "/dashboard/customer/overview"
-              }
+              href="/dashboard/vendor/overview"
               className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#2B1B14] underline decoration-[#F2751A]/40 decoration-2 underline-offset-4 transition hover:text-[#E8452C]"
             >
               <ArrowLeft className="size-4" />
@@ -743,9 +726,12 @@ export default function CustomerProfile({
                 </div>
 
                 <div className="mt-8 flex flex-col items-center text-center">
-                  <div className="h-28 w-28 rounded-full p-[3px]" style={{
-                    background: `conic-gradient(#F2751A ${completeness * 3.6}deg, rgba(255,255,255,0.14) 0deg)`,
-                  }}>
+                  <div
+                    className="h-28 w-28 rounded-full p-[3px]"
+                    style={{
+                      background: `conic-gradient(#F2751A ${completeness * 3.6}deg, rgba(255,255,255,0.14) 0deg)`,
+                    }}
+                  >
                     <div className="h-full w-full rounded-full bg-[#241711] p-1.5">
                       <div className="relative h-full w-full overflow-hidden rounded-full ring-2 ring-white/10">
                         <Avatar
@@ -776,11 +762,7 @@ export default function CustomerProfile({
                   </h2>
 
                   <p className="mt-1 text-sm font-semibold text-[#F2751A]">
-                    {isVendor
-                      ? form.businessName.trim() || "Restaurant owner"
-                      : isAdmin
-                        ? "PizzaHub administrator"
-                        : "PizzaHub customer"}
+                    {form.businessName.trim() || "Restaurant owner"}
                   </p>
 
                   <p className="mt-2 flex max-w-full items-center gap-2 break-all text-xs text-white/60">
@@ -793,25 +775,23 @@ export default function CustomerProfile({
               <div className="border-t border-dashed border-white/20" />
 
               <div className="relative space-y-4 p-6">
-                {isVendor && (
-                  <>
-                    <ProfileItem
-                      icon={Store}
-                      value={form.businessName}
-                      fallback="No restaurant name"
-                    />
-                    <ProfileItem
-                      icon={MapPin}
-                      value={form.businessLocation}
-                      fallback="No restaurant location"
-                    />
-                    <ProfileItem
-                      icon={Clock}
-                      value={form.openingHours}
-                      fallback="No opening hours"
-                    />
-                  </>
-                )}
+                <ProfileItem
+                  icon={Store}
+                  value={form.businessName}
+                  fallback="No restaurant name"
+                />
+
+                <ProfileItem
+                  icon={MapPin}
+                  value={form.businessLocation}
+                  fallback="No restaurant location"
+                />
+
+                <ProfileItem
+                  icon={Clock}
+                  value={form.openingHours}
+                  fallback="No opening hours"
+                />
 
                 <ProfileItem
                   icon={Phone}
@@ -822,7 +802,7 @@ export default function CustomerProfile({
                 <ProfileItem
                   icon={MapPin}
                   value={form.address}
-                  fallback="No delivery address yet"
+                  fallback="No address yet"
                 />
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3.5">
@@ -856,7 +836,9 @@ export default function CustomerProfile({
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2F6B3A]/10 text-[#2F6B3A]">
                   <BadgeCheck className="size-4" />
                 </span>
-                <p className="mt-2 text-xs font-extrabold text-[#2B1B14]">Active</p>
+                <p className="mt-2 text-xs font-extrabold text-[#2B1B14]">
+                  Active
+                </p>
                 <p className="text-[11px] leading-4 text-[#7A6258]">
                   Account in good standing
                 </p>
@@ -864,17 +846,13 @@ export default function CustomerProfile({
 
               <div className="rounded-2xl border border-[#2B1B14]/10 bg-white p-4 shadow-sm">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFF0E8] text-[#E8452C]">
-                  {isVendor ? (
-                    <Store className="size-4" />
-                  ) : (
-                    <ShoppingBag className="size-4" />
-                  )}
+                  <Store className="size-4" />
                 </span>
                 <p className="mt-2 text-xs font-extrabold text-[#2B1B14]">
-                  {roleLabel}
+                  Vendor
                 </p>
                 <p className="text-[11px] leading-4 text-[#7A6258]">
-                  {isVendor ? "Restaurant account" : "Pizza lover"}
+                  Restaurant account
                 </p>
               </div>
             </div>
@@ -882,9 +860,8 @@ export default function CustomerProfile({
             <div className="flex items-start gap-3 rounded-2xl border border-[#F2751A]/25 bg-[#FFF0E8]/70 p-4">
               <Sparkles className="mt-0.5 size-4 shrink-0 text-[#E8452C]" />
               <p className="text-xs leading-5 text-[#5C443A]">
-                {isVendor
-                  ? "Keep your restaurant details accurate so customers can find your restaurant."
-                  : "A photo and phone number make deliveries smoother and help personalize your experience."}
+                Keep your restaurant details accurate so customers can
+                find your restaurant.
               </p>
             </div>
           </aside>
@@ -928,29 +905,25 @@ export default function CustomerProfile({
                   <ViewItem label="Full name" value={saved.name} />
                   <ViewItem label="Email address" value={saved.email} />
                   <ViewItem label="Phone number" value={saved.phone} />
-                  <ViewItem label="Delivery address" value={saved.address} />
+                  <ViewItem label="Address" value={saved.address} />
                 </ViewSection>
 
-                {isVendor && (
-                  <>
-                    <div className="border-t border-[#2B1B14]/10" />
+                <div className="border-t border-[#2B1B14]/10" />
 
-                    <ViewSection title="Restaurant information">
-                      <ViewItem
-                        label="Restaurant name"
-                        value={saved.businessName}
-                      />
-                      <ViewItem
-                        label="Restaurant location"
-                        value={saved.businessLocation}
-                      />
-                      <ViewItem
-                        label="Opening hours"
-                        value={saved.openingHours}
-                      />
-                    </ViewSection>
-                  </>
-                )}
+                <ViewSection title="Restaurant information">
+                  <ViewItem
+                    label="Restaurant name"
+                    value={saved.businessName}
+                  />
+                  <ViewItem
+                    label="Restaurant location"
+                    value={saved.businessLocation}
+                  />
+                  <ViewItem
+                    label="Opening hours"
+                    value={saved.openingHours}
+                  />
+                </ViewSection>
 
                 <div className="border-t border-[#2B1B14]/10" />
 
@@ -972,10 +945,14 @@ export default function CustomerProfile({
                         name={saved.name || ""}
                       />
                     </div>
+
                     <div>
                       <p className="text-sm font-bold text-[#2B1B14]">
-                        {saved.image ? "Profile photo added" : "No profile photo"}
+                        {saved.image
+                          ? "Profile photo added"
+                          : "No profile photo"}
                       </p>
+
                       <p className="mt-1 text-xs text-[#7A6258]">
                         {saved.image
                           ? "Your profile photo is visible on your account."
@@ -990,8 +967,10 @@ export default function CustomerProfile({
                     <Check className="size-4" />
                     Your profile is saved
                   </div>
+
                   <p className="mt-1 text-xs leading-5 text-[#55735A]">
-                    Want to change something? Click the Edit Profile button above.
+                    Want to change something? Click the Edit Profile
+                    button above.
                   </p>
                 </div>
               </div>
@@ -1066,7 +1045,7 @@ export default function CustomerProfile({
                     </Field>
 
                     <Field
-                      label="Delivery address"
+                      label="Address"
                       htmlFor="address"
                       error={shownErrors.address}
                       optional
@@ -1087,98 +1066,96 @@ export default function CustomerProfile({
                   </div>
                 </section>
 
-                {isVendor && (
-                  <>
-                    <div className="mx-6 border-t border-[#2B1B14]/10 sm:mx-8" />
+                <div className="mx-6 border-t border-[#2B1B14]/10 sm:mx-8" />
 
-                    <section className="space-y-6 p-6 sm:p-8">
-                      <SectionHeading
-                        step="02"
-                        icon={Store}
-                        title="Restaurant information"
-                        description="Manage your restaurant's public business details."
+                {/* Restaurant information */}
+                <section className="space-y-6 p-6 sm:p-8">
+                  <SectionHeading
+                    step="02"
+                    icon={Store}
+                    title="Restaurant information"
+                    description="Manage your restaurant's public business details."
+                  />
+
+                  <Field
+                    label="Restaurant name"
+                    htmlFor="businessName"
+                    error={shownErrors.businessName}
+                    required
+                    hint="2–80 characters"
+                  >
+                    <div className="relative">
+                      <Store className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
+                      <Input
+                        id="businessName"
+                        value={form.businessName}
+                        onChange={(event) =>
+                          updateField("businessName", event.target.value)
+                        }
+                        onBlur={() => markTouched("businessName")}
+                        aria-invalid={Boolean(shownErrors.businessName)}
+                        className={`${inputClass} pl-10`}
+                        placeholder="Enter your restaurant name"
+                        maxLength={80}
                       />
+                    </div>
+                  </Field>
 
-                      <Field
-                        label="Restaurant name"
-                        htmlFor="businessName"
-                        error={shownErrors.businessName}
-                        required
-                        hint="2–80 characters"
-                      >
-                        <div className="relative">
-                          <Store className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
-                          <Input
-                            id="businessName"
-                            value={form.businessName}
-                            onChange={(event) =>
-                              updateField("businessName", event.target.value)
-                            }
-                            onBlur={() => markTouched("businessName")}
-                            aria-invalid={Boolean(shownErrors.businessName)}
-                            className={`${inputClass} pl-10`}
-                            placeholder="Enter your restaurant name"
-                            maxLength={80}
-                          />
-                        </div>
-                      </Field>
+                  <Field
+                    label="Restaurant location"
+                    htmlFor="businessLocation"
+                    error={shownErrors.businessLocation}
+                    optional
+                    hint="Maximum 120 characters"
+                  >
+                    <div className="relative">
+                      <MapPin className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
+                      <Input
+                        id="businessLocation"
+                        value={form.businessLocation}
+                        onChange={(event) =>
+                          updateField("businessLocation", event.target.value)
+                        }
+                        onBlur={() => markTouched("businessLocation")}
+                        aria-invalid={Boolean(shownErrors.businessLocation)}
+                        className={`${inputClass} pl-10`}
+                        placeholder="e.g. Gulshan, Dhaka"
+                        maxLength={120}
+                      />
+                    </div>
+                  </Field>
 
-                      <Field
-                        label="Restaurant location"
-                        htmlFor="businessLocation"
-                        error={shownErrors.businessLocation}
-                        optional
-                        hint="Maximum 120 characters"
-                      >
-                        <div className="relative">
-                          <MapPin className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
-                          <Input
-                            id="businessLocation"
-                            value={form.businessLocation}
-                            onChange={(event) =>
-                              updateField("businessLocation", event.target.value)
-                            }
-                            onBlur={() => markTouched("businessLocation")}
-                            aria-invalid={Boolean(shownErrors.businessLocation)}
-                            className={`${inputClass} pl-10`}
-                            placeholder="e.g. Gulshan, Dhaka"
-                            maxLength={120}
-                          />
-                        </div>
-                      </Field>
-
-                      <Field
-                        label="Opening hours"
-                        htmlFor="openingHours"
-                        error={shownErrors.openingHours}
-                        optional
-                        hint="Maximum 80 characters"
-                      >
-                        <div className="relative">
-                          <Clock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
-                          <Input
-                            id="openingHours"
-                            value={form.openingHours}
-                            onChange={(event) =>
-                              updateField("openingHours", event.target.value)
-                            }
-                            onBlur={() => markTouched("openingHours")}
-                            aria-invalid={Boolean(shownErrors.openingHours)}
-                            className={`${inputClass} pl-10`}
-                            placeholder="e.g. 10:00 AM - 10:00 PM"
-                            maxLength={80}
-                          />
-                        </div>
-                      </Field>
-                    </section>
-                  </>
-                )}
+                  <Field
+                    label="Opening hours"
+                    htmlFor="openingHours"
+                    error={shownErrors.openingHours}
+                    optional
+                    hint="Maximum 80 characters"
+                  >
+                    <div className="relative">
+                      <Clock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
+                      <Input
+                        id="openingHours"
+                        value={form.openingHours}
+                        onChange={(event) =>
+                          updateField("openingHours", event.target.value)
+                        }
+                        onBlur={() => markTouched("openingHours")}
+                        aria-invalid={Boolean(shownErrors.openingHours)}
+                        className={`${inputClass} pl-10`}
+                        placeholder="e.g. 10:00 AM - 10:00 PM"
+                        maxLength={80}
+                      />
+                    </div>
+                  </Field>
+                </section>
 
                 <div className="mx-6 border-t border-[#2B1B14]/10 sm:mx-8" />
 
+                {/* Bio */}
                 <section className="space-y-6 p-6 sm:p-8">
                   <SectionHeading
-                    step={isVendor ? "03" : "02"}
+                    step="03"
                     icon={User}
                     title="A little about you"
                     description="Add a short note to make your account feel like home."
@@ -1200,11 +1177,7 @@ export default function CustomerProfile({
                       }
                       onBlur={() => markTouched("bio")}
                       aria-invalid={Boolean(shownErrors.bio)}
-                      placeholder={
-                        isVendor
-                          ? "Tell customers something about your restaurant..."
-                          : "Tell us about your favourite slice..."
-                      }
+                      placeholder="Tell customers something about your restaurant..."
                       className="min-h-32 resize-none rounded-xl border-[#2B1B14]/10 bg-[#FFFCF7] px-3.5 py-3 text-[#2B1B14] focus-visible:border-[#E8452C] focus-visible:ring-[#E8452C]/15"
                     />
                   </Field>
@@ -1218,7 +1191,7 @@ export default function CustomerProfile({
                   className="scroll-mt-6 space-y-6 p-6 sm:p-8"
                 >
                   <SectionHeading
-                    step={isVendor ? "04" : "03"}
+                    step="04"
                     icon={Camera}
                     title="Your profile photo"
                     description="Upload a photo or use a public image link."
@@ -1367,7 +1340,8 @@ export default function CustomerProfile({
                         )}
 
                         <p className="text-[11px] leading-4 text-[#7A6258]">
-                          Paste a public image link. Leave it empty to use your initials.
+                          Paste a public image link. Leave it empty to use
+                          your initials.
                         </p>
                       </div>
                     )}
@@ -1385,6 +1359,7 @@ export default function CustomerProfile({
                             : "bg-[#2F6B3A]"
                         }`}
                       />
+
                       {saving
                         ? "Saving your changes..."
                         : hasErrors
@@ -1450,6 +1425,7 @@ function ProfileItem({
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] text-[#F2751A]">
         <Icon className="size-4" />
       </span>
+
       <span className="min-w-0 break-words pt-1.5 text-white/80">
         {value?.trim() || fallback}
       </span>
@@ -1488,6 +1464,7 @@ function ViewItem({
       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A6258]">
         {label}
       </p>
+
       <p className="mt-2 break-words text-sm font-semibold leading-6 text-[#2B1B14]">
         {value?.trim() || fallback}
       </p>
@@ -1511,6 +1488,7 @@ function SectionHeading({
     <div className="flex items-center gap-3">
       <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#FFF0E8] text-[#E8452C]">
         <Icon className="size-5" />
+
         <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#2B1B14] px-1 text-[9px] font-bold text-white">
           {step}
         </span>
@@ -1520,7 +1498,10 @@ function SectionHeading({
         <h2 className="text-base font-extrabold text-[#2B1B14] sm:text-lg">
           {title}
         </h2>
-        <p className="text-xs leading-5 text-[#7A6258]">{description}</p>
+
+        <p className="text-xs leading-5 text-[#7A6258]">
+          {description}
+        </p>
       </div>
     </div>
   )

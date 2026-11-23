@@ -1,23 +1,27 @@
+import { clientFetch } from "./client-api"
+
 export const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"
 
 export type MenuItem = {
   _id: string
   name: string
-  email:string
+  email?: string
   category: string
   price: number
   location: string
   description: string
   image?: string
   businessName?: string
+  vendorEmail?: string
   approvalStatus?: "pending" | "approved" | "rejected"
   isAvailable?: boolean
+  createdAt?: string
 }
 
 export type NewMenuItem = {
   name: string
-  email:string
+  email?: string
   category: string
   price: number
   location: string
@@ -28,6 +32,18 @@ export type NewMenuItem = {
 
 async function request(url: string, init: RequestInit, fallback: string) {
   const res = await fetch(url, init)
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(data?.message || fallback)
+  return data
+}
+
+// Same as request(), but attaches the signed-in user's Bearer token.
+async function authRequest(
+  url: string,
+  init: RequestInit,
+  fallback: string
+) {
+  const res = await clientFetch(url, init)
   const data = await res.json().catch(() => null)
   if (!res.ok) throw new Error(data?.message || fallback)
   return data
@@ -55,52 +71,42 @@ export async function uploadMenuImage(file: File): Promise<string> {
 }
 
 export function addItem(item: NewMenuItem) {
-  return request(`${BASE_URL}/menu`, json("POST", item), "Failed to add menu item")
+  return authRequest(
+    `${BASE_URL}/menu`,
+    json("POST", item),
+    "Failed to add menu item"
+  )
 }
 
 export function updateItem(id: string, payload: Partial<MenuItem>) {
-  return request(`${BASE_URL}/menu/${id}`, json("PUT", payload), "Failed to update menu item")
+  return authRequest(
+    `${BASE_URL}/menu/${id}`,
+    json("PUT", payload),
+    "Failed to update menu item"
+  )
 }
 
 export function deleteItem(id: string) {
-  return request(`${BASE_URL}/menu/${id}`, { method: "DELETE" }, "Failed to delete menu item")
+  return authRequest(
+    `${BASE_URL}/menu/${id}`,
+    { method: "DELETE" },
+    "Failed to delete menu item"
+  )
 }
 
 export function changeAvailability(id: string, isAvailable: boolean) {
-  return request(
+  return authRequest(
     `${BASE_URL}/menu/${id}/availability`,
     json("PATCH", { isAvailable }),
     "Failed to update availability"
   )
 }
-// Server-side fetch of the logged-in vendor's items
-// `approvalStatus=all` lets the vendor see pending and rejected items too.
-export async function getItems(businessName?: string): Promise<MenuItem[]> {
-  const query = new URLSearchParams({ approvalStatus: "all" })
-  if (businessName) query.set("businessName", businessName)
-   
-  const data = await request(
-    `${BASE_URL}/menu?${query.toString()}`,
-    { cache: "no-store" },
-    "Failed to load menu items"
-  )
-
-  return Array.isArray(data) ? data : []
-}
-
 
 // Public menu: only approved items, with optional filters from the URL
-// export async function getMenu(
-//   params: URLSearchParams = new URLSearchParams()
-// ): Promise<MenuItem[]> {
-//   const query = new URLSearchParams(params)
-//   query.set("approvalStatus", "approved") // customers never see pending/rejected items
-// Public menu: only approved items, with optional filters
 export async function getMenu(
   params: URLSearchParams | Record<string, string> = {}
 ): Promise<MenuItem[]> {
   const query = new URLSearchParams(params)
-  query.set("approvalStatus", "approved") // customers never see pending/rejected items
 
   const data = await request(
     `${BASE_URL}/browse-menu?${query.toString()}`,
@@ -110,7 +116,6 @@ export async function getMenu(
 
   return Array.isArray(data) ? data : []
 }
-
 
 // Single approved dish for the details page. Returns null if it doesn't exist.
 export async function getMenuItem(id: string): Promise<MenuItem | null> {
@@ -123,4 +128,3 @@ export async function getMenuItem(id: string): Promise<MenuItem | null> {
 
   return (await res.json()) as MenuItem
 }
-  

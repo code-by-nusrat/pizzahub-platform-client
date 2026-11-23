@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { Bricolage_Grotesque } from "next/font/google"
 
-import { getSession } from "@/lib/core/server"
+import { getSession, getToken } from "@/lib/core/server"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -30,15 +30,22 @@ type Stat = {
 const CustomerOverviewPage = async () => {
   const session = await getSession()
   if (!session?.user?.email) redirect("/sign-in")
-
+const token = await getToken()
+  if (!token) redirect("/sign-in")
   let orders: OrderLite[] = []
   let failed = false
 
   try {
-    const res = await fetch(
-      `${API}/orders?email=${encodeURIComponent(session.user.email)}`,
-      { cache: "no-store" }
-    )
+   const res = await fetch(
+  `${API}/orders?email=${encodeURIComponent(session.user.email)}`,
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  }
+)
     if (res.ok) {
       orders = await res.json()
     } else {

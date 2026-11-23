@@ -161,7 +161,7 @@ const ChooseSection = () => {
                 className="inline-block"
               >
                 <Link
-                  href="/menu"
+                  href="/browse-menu"
                   className="inline-flex items-center gap-2 rounded-full bg-[#FFF8EC] px-8 py-3.5 text-base font-bold text-[#C2331B] shadow-lg transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                 >
                   Start your order

@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { Bricolage_Grotesque } from "next/font/google"
 
-import { getSession } from "@/lib/core/server"
+import { getSession, getToken } from "@/lib/core/server"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -40,9 +40,12 @@ type Stat = {
   tone: string
 }
 
-async function safeJson<T>(url: string): Promise<T | null> {
+async function safeJson<T>(url: string, token: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { cache: "no-store" })
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { authorization: `Bearer ${token}` },
+    })
     if (!res.ok) return null
     return (await res.json()) as T
   } catch {
@@ -54,26 +57,22 @@ const VendorOverviewPage = async () => {
   const session = await getSession()
   if (!session?.user?.email) redirect("/sign-in")
 
+  const token = await getToken()
   const email = session.user.email
 
   const profile = await safeJson<{ businessName?: string }>(
-    `${API}/vendor-profile/${encodeURIComponent(email)}`
+    `${API}/vendor-profile/${encodeURIComponent(email)}`,
+    token
   )
 
   const businessName = profile?.businessName ?? ""
 
+  // The backend scopes /menu and /vendor/orders to the signed-in vendor,
+  // so no email or business name has to be sent from the browser.
   const [menu, orderResult, plan] = await Promise.all([
-    businessName
-      ? safeJson<MenuLite[]>(
-          `${API}/menu?approvalStatus=all&businessName=${encodeURIComponent(
-            businessName
-          )}`
-        )
-      : Promise.resolve([] as MenuLite[]),
-    safeJson<{ orders?: OrderLite[] }>(
-      `${API}/vendor/orders?email=${encodeURIComponent(email)}`
-    ),
-    safeJson<Plan>(`${API}/subscription/${encodeURIComponent(email)}`),
+    safeJson<MenuLite[]>(`${API}/menu?approvalStatus=all`, token),
+    safeJson<{ orders?: OrderLite[] }>(`${API}/vendor/orders`, token),
+    safeJson<Plan>(`${API}/subscription/${encodeURIComponent(email)}`, token),
   ])
 
   const items = Array.isArray(menu) ? menu : []

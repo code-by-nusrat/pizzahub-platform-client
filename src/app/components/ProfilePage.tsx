@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -8,6 +9,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react"
+
 import {
   ArrowLeft,
   BadgeCheck,
@@ -28,24 +30,27 @@ import {
   Sparkles,
   Store,
   Trash,
-  TriangleExclamationPoint,
+  TriangleAlert,
   Upload,
   User,
   UtensilsCrossed,
   X,
   type LucideIcon,
 } from "lucide-react"
+
 import Link from "next/link"
 import { toast } from "react-toastify"
 import { Bricolage_Grotesque } from "next/font/google"
 
 import { authClient } from "@/lib/auth-client"
-import { updateProfile, type Profile } from "@/lib/profile-api"
+
+import type { Profile } from "@/lib/profile-api"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { updateProfileAction } from "@/lib/actions/profile-actions"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -112,6 +117,7 @@ function isImageValue(value: string) {
 
 function validate(form: FormState, isVendor: boolean): FormErrors {
   const errors: FormErrors = {}
+
   const name = form.name.trim()
   const phone = form.phone.trim()
 
@@ -134,6 +140,7 @@ function validate(form: FormState, isVendor: boolean): FormErrors {
   }
 
   const image = form.image.trim()
+
   if (image && !isImageValue(image)) {
     errors.image = "Paste a valid http(s) image link or upload a photo."
   }
@@ -144,15 +151,18 @@ function validate(form: FormState, isVendor: boolean): FormErrors {
     if (businessName.length < 2) {
       errors.businessName = "Your restaurant name is required."
     } else if (businessName.length > 80) {
-      errors.businessName = "Please keep the restaurant name under 80 characters."
+      errors.businessName =
+        "Please keep the restaurant name under 80 characters."
     }
 
     if (form.businessLocation.trim().length > 120) {
-      errors.businessLocation = "Please keep the location under 120 characters."
+      errors.businessLocation =
+        "Please keep the location under 120 characters."
     }
 
     if (form.openingHours.trim().length > 80) {
-      errors.openingHours = "Please keep the opening hours under 80 characters."
+      errors.openingHours =
+        "Please keep the opening hours under 80 characters."
     }
   }
 
@@ -169,12 +179,19 @@ async function optimizeImage(file: File): Promise<string> {
   }
 
   const bitmap = await createImageBitmap(file)
+
   const maxSide = 320
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+
+  const scale = Math.min(
+    1,
+    maxSide / Math.max(bitmap.width, bitmap.height)
+  )
+
   const width = Math.max(1, Math.round(bitmap.width * scale))
   const height = Math.max(1, Math.round(bitmap.height * scale))
 
   const canvas = document.createElement("canvas")
+
   canvas.width = width
   canvas.height = height
 
@@ -185,11 +202,12 @@ async function optimizeImage(file: File): Promise<string> {
     throw new Error("We could not process that photo. Please try another one.")
   }
 
-  // Warm background keeps transparent PNGs from turning black.
   context.fillStyle = "#FFF8EC"
   context.fillRect(0, 0, width, height)
+
   context.imageSmoothingQuality = "high"
   context.drawImage(bitmap, 0, 0, width, height)
+
   bitmap.close()
 
   let dataUrl = canvas.toDataURL("image/jpeg", 0.72)
@@ -207,6 +225,7 @@ async function optimizeImage(file: File): Promise<string> {
 
 function Avatar({ src, name }: { src: string; name: string }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
+
   const showImage = Boolean(src.trim()) && failedSrc !== src
 
   if (showImage) {
@@ -253,9 +272,11 @@ function Field({
           className="text-sm font-semibold text-[#2B1B14]"
         >
           {label}
+
           {required && <span className="text-[#E8452C]">*</span>}
+
           {optional && (
-            <span className="text-[11px] font-medium text-[#7A6258]">
+            <span className="ml-1 text-[11px] font-medium text-[#7A6258]">
               optional
             </span>
           )}
@@ -276,7 +297,7 @@ function Field({
           role="alert"
           className="flex items-center gap-1.5 text-xs font-semibold text-[#C2331B]"
         >
-          <TriangleExclamationPoint className="size-3.5 shrink-0" />
+          <TriangleAlert className="size-3.5 shrink-0" />
           {error}
         </p>
       )}
@@ -299,6 +320,7 @@ function SectionHeading({
     <div className="flex items-center gap-3">
       <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#FFF0E8] text-[#E8452C]">
         <Icon className="size-5" />
+
         <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#2B1B14] px-1 text-[9px] font-bold text-white">
           {step}
         </span>
@@ -308,6 +330,7 @@ function SectionHeading({
         <h2 className="text-base font-extrabold text-[#2B1B14] sm:text-lg">
           {title}
         </h2>
+
         <p className="text-xs leading-5 text-[#7A6258]">{description}</p>
       </div>
     </div>
@@ -320,16 +343,23 @@ export default function ProfilePage({
   initialProfile: Profile
 }) {
   const [saved, setSaved] = useState(initialProfile)
-  const [form, setForm] = useState<FormState>(() => toForm(initialProfile))
+
+  const [form, setForm] = useState<FormState>(() =>
+    toForm(initialProfile)
+  )
+
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
+
   const [feedback, setFeedback] = useState<Feedback | null>(null)
+
   const [imageMode, setImageMode] = useState<ImageMode>(() =>
     initialProfile.image?.trim() &&
     !initialProfile.image.startsWith("data:")
       ? "link"
       : "upload"
   )
+
   const [imageBusy, setImageBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
 
@@ -337,29 +367,32 @@ export default function ProfilePage({
 
   const isVendor = saved.role === "vendor"
   const isAdmin = saved.role === "admin"
-  const roleLabel = isVendor ? "Vendor" : isAdmin ? "Admin" : "Customer"
+
+  const roleLabel = isVendor
+    ? "Vendor"
+    : isAdmin
+      ? "Admin"
+      : "Customer"
 
   const errors = validate(form, isVendor)
   const shownErrors = submitted ? errors : {}
-  const dirty = JSON.stringify(form) !== JSON.stringify(toForm(saved))
 
+  const dirty =
+    JSON.stringify(form) !== JSON.stringify(toForm(saved))
+
+  // Only required fields determine profile strength.
   const trackedFields = isVendor
-    ? [
-        form.name,
-        form.phone,
-        form.address,
-        form.bio,
-        form.image,
-        form.businessName,
-        form.businessLocation,
-        form.openingHours,
-      ]
-    : [form.name, form.phone, form.address, form.bio, form.image]
+    ? [form.name, form.businessName]
+    : [form.name]
 
   const filledFields = trackedFields.filter(
     (value) => value.trim().length > 0
   ).length
-  const completeness = Math.round((filledFields / trackedFields.length) * 100)
+
+  const completeness = Math.round(
+    (filledFields / trackedFields.length) * 100
+  )
+
   const remaining = trackedFields.length - filledFields
 
   const ringStyle = {
@@ -384,7 +417,9 @@ export default function ProfilePage({
     ? "Update the details customers see before they order — your name, your photo, and your restaurant's essential information."
     : "Update your name, photo and contact details so every order, review and pickup feels personal."
 
-  const linkValue = form.image.startsWith("data:") ? "" : form.image
+  const linkValue = form.image.startsWith("data:")
+    ? ""
+    : form.image
 
   function updateField<K extends keyof FormState>(
     key: K,
@@ -395,7 +430,9 @@ export default function ProfilePage({
       [key]: value,
     }))
 
-    if (feedback) setFeedback(null)
+    if (feedback) {
+      setFeedback(null)
+    }
   }
 
   async function handleImageFile(file: File) {
@@ -404,8 +441,10 @@ export default function ProfilePage({
 
     try {
       const dataUrl = await optimizeImage(file)
+
       updateField("image", dataUrl)
       setImageMode("upload")
+
       toast.info("Photo added. Save your profile to keep it.")
     } catch (error) {
       const message =
@@ -418,6 +457,7 @@ export default function ProfilePage({
         title: "Photo could not be added",
         message,
       })
+
       toast.error(message)
     } finally {
       setImageBusy(false)
@@ -426,9 +466,12 @@ export default function ProfilePage({
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+
     event.target.value = ""
 
-    if (file) void handleImageFile(file)
+    if (file) {
+      void handleImageFile(file)
+    }
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
@@ -436,7 +479,10 @@ export default function ProfilePage({
     setDragging(false)
 
     const file = event.dataTransfer.files?.[0]
-    if (file) void handleImageFile(file)
+
+    if (file) {
+      void handleImageFile(file)
+    }
   }
 
   function removePhoto() {
@@ -452,19 +498,24 @@ export default function ProfilePage({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (saving || !dirty) return
+    if (saving || imageBusy) return
 
     setSubmitted(true)
+    setFeedback(null)
 
-    if (Object.keys(errors).length > 0) {
+    const currentErrors = validate(form, isVendor)
+
+    if (Object.keys(currentErrors).length > 0) {
       setFeedback({
         type: "error",
         title: "Almost there",
-        message: "Please correct the highlighted fields, then keep your changes.",
+        message: "Please correct the highlighted fields, then try again.",
       })
+
       toast.error("Please correct the highlighted fields.")
 
-      const firstInvalid = Object.keys(errors)[0]
+      const firstInvalid = Object.keys(currentErrors)[0]
+
       if (firstInvalid) {
         document.getElementById(firstInvalid)?.focus()
       }
@@ -472,16 +523,18 @@ export default function ProfilePage({
       return
     }
 
+    if (!dirty) return
+
     try {
       setSaving(true)
-      setFeedback(null)
 
-      const updated = await updateProfile(saved.email, {
+      const payload = {
         name: form.name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
         bio: form.bio.trim(),
         image: form.image.trim(),
+
         ...(isVendor
           ? {
               businessName: form.businessName.trim(),
@@ -489,52 +542,64 @@ export default function ProfilePage({
               openingHours: form.openingHours.trim(),
             }
           : {}),
-      })
+      }
+
+      const result = await updateProfileAction(payload)
+
+      if (!result.success) {
+        throw new Error(result.message)
+      }
+
+      const updated = result.profile
 
       const nextProfile: Profile = {
         ...saved,
         ...updated,
-        email: updated.email || saved.email,
-        role: updated.role || saved.role,
+        email: saved.email,
+        role: saved.role,
         createdAt: updated.createdAt || saved.createdAt,
       }
 
       setSaved(nextProfile)
       setForm(toForm(nextProfile))
       setSubmitted(false)
+
       setFeedback({
         type: "success",
         title: "Profile updated",
         message: isVendor
           ? "Your restaurant details are saved and ready for customers."
-          : "Your details are saved. Your next order just got a little more personal.",
+          : "Your details are saved.",
       })
 
       toast.success("Your profile has been updated!")
 
-      // Keep the navbar/sidebar session in sync with the saved profile.
-      void authClient
-        .updateUser({
+      // Synchronize name and image with Better Auth.
+      try {
+        await authClient.updateUser({
           name: form.name.trim(),
-          image: form.image.trim(),
+          image: form.image.trim() || null,
         })
-        .catch((syncError) => {
-          console.warn(
-            "Profile saved, but the account details could not be synced:",
-            syncError
-          )
-        })
+      } catch (syncError) {
+        console.warn(
+          "Profile saved, but Better Auth details could not be synced:",
+          syncError
+        )
+      }
     } catch (error) {
       console.error("Profile update error:", error)
 
       const message =
-        error instanceof Error ? error.message : "Could not update profile."
+        error instanceof Error
+          ? error.message
+          : "Could not update profile."
 
       setFeedback({
         type: "error",
         title: "We could not save your profile",
         message,
       })
+
       toast.error(message)
     } finally {
       setSaving(false)
@@ -545,6 +610,7 @@ export default function ProfilePage({
     setForm(toForm(saved))
     setSubmitted(false)
     setFeedback(null)
+
     toast.info("Changes discarded.")
   }
 
@@ -556,7 +622,9 @@ export default function ProfilePage({
         className="pointer-events-none absolute inset-0 overflow-hidden"
       >
         <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-[#F2751A]/10 blur-3xl" />
+
         <div className="absolute -right-24 top-48 h-96 w-96 rounded-full bg-[#2F6B3A]/10 blur-3xl" />
+
         <div
           className="absolute inset-0 opacity-[0.035]"
           style={{
@@ -607,6 +675,7 @@ export default function ProfilePage({
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A6258]">
                 Profile strength
               </p>
+
               <p
                 className={`${display.className} mt-1 text-2xl font-extrabold text-[#2B1B14]`}
               >
@@ -618,6 +687,7 @@ export default function ProfilePage({
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A6258]">
                 Member since
               </p>
+
               <p className="mt-1 text-sm font-extrabold leading-8 text-[#2B1B14]">
                 {memberSince}
               </p>
@@ -645,12 +715,13 @@ export default function ProfilePage({
               {feedback.type === "success" ? (
                 <CircleCheck className="size-4" />
               ) : (
-                <TriangleExclamationPoint className="size-4" />
+                <TriangleAlert className="size-4" />
               )}
             </span>
 
             <div className="min-w-0 flex-1">
               <p className="text-sm font-extrabold">{feedback.title}</p>
+
               <p className="mt-0.5 text-sm leading-5 opacity-80">
                 {feedback.message}
               </p>
@@ -700,7 +771,10 @@ export default function ProfilePage({
                   >
                     <div className="h-full w-full rounded-full bg-[#241711] p-1.5">
                       <div className="relative h-full w-full overflow-hidden rounded-full ring-2 ring-white/10">
-                        <Avatar src={form.image.trim()} name={form.name} />
+                        <Avatar
+                          src={form.image.trim()}
+                          name={form.name}
+                        />
 
                         <button
                           type="button"
@@ -742,7 +816,9 @@ export default function ProfilePage({
               {/* Ticket perforation */}
               <div className="relative">
                 <span className="absolute -left-3 top-0 h-6 w-6 -translate-y-1/2 rounded-full bg-[#FFF8EC]" />
+
                 <span className="absolute -right-3 top-0 h-6 w-6 -translate-y-1/2 rounded-full bg-[#FFF8EC]" />
+
                 <div className="border-t border-dashed border-white/20" />
               </div>
 
@@ -751,6 +827,7 @@ export default function ProfilePage({
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] text-[#F2751A]">
                     <Phone className="size-4" />
                   </span>
+
                   <span className="min-w-0 break-words pt-1.5 text-white/80">
                     {form.phone.trim() || "No phone number yet"}
                   </span>
@@ -760,6 +837,7 @@ export default function ProfilePage({
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] text-[#F2751A]">
                     <MapPin className="size-4" />
                   </span>
+
                   <span className="min-w-0 break-words pt-1.5 text-white/80">
                     {form.address.trim() || "No address yet"}
                   </span>
@@ -771,6 +849,7 @@ export default function ProfilePage({
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] text-[#F2751A]">
                         <Store className="size-4" />
                       </span>
+
                       <span className="min-w-0 break-words pt-1.5 text-white/80">
                         {form.businessLocation.trim() ||
                           "No restaurant location yet"}
@@ -781,6 +860,7 @@ export default function ProfilePage({
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] text-[#F2751A]">
                         <Clock className="size-4" />
                       </span>
+
                       <span className="min-w-0 break-words pt-1.5 text-white/80">
                         {form.openingHours.trim() || "No opening hours yet"}
                       </span>
@@ -791,7 +871,10 @@ export default function ProfilePage({
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3.5">
                   <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.12em]">
                     <span className="text-white/55">Profile strength</span>
-                    <span className="text-[#F2751A]">{completeness}%</span>
+
+                    <span className="text-[#F2751A]">
+                      {completeness}%
+                    </span>
                   </div>
 
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -803,8 +886,8 @@ export default function ProfilePage({
 
                   <p className="mt-2 text-[11px] leading-4 text-white/45">
                     {remaining === 0
-                      ? "Every detail is filled in. Nicely done."
-                      : `${remaining} detail${remaining === 1 ? "" : "s"} left to complete your card.`}
+                      ? "Every required detail is filled in. Nicely done."
+                      : `${remaining} required detail${remaining === 1 ? "" : "s"} left to complete your card.`}
                   </p>
                 </div>
 
@@ -814,15 +897,17 @@ export default function ProfilePage({
               </div>
             </article>
 
-            {/* Small role-aware cards */}
+            {/* Role cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-[#2B1B14]/10 bg-white p-4 shadow-sm">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2F6B3A]/10 text-[#2F6B3A]">
                   <BadgeCheck className="size-4" />
                 </span>
+
                 <p className="mt-2 text-xs font-extrabold text-[#2B1B14]">
                   Active
                 </p>
+
                 <p className="text-[11px] leading-4 text-[#7A6258]">
                   Account in good standing
                 </p>
@@ -836,9 +921,11 @@ export default function ProfilePage({
                     <ShoppingBag className="size-4" />
                   )}
                 </span>
+
                 <p className="mt-2 text-xs font-extrabold text-[#2B1B14]">
                   {roleLabel}
                 </p>
+
                 <p className="text-[11px] leading-4 text-[#7A6258]">
                   {isVendor ? "Restaurant partner" : "Pizza lover"}
                 </p>
@@ -847,6 +934,7 @@ export default function ProfilePage({
 
             <div className="flex items-start gap-3 rounded-2xl border border-[#F2751A]/25 bg-[#FFF0E8]/70 p-4">
               <Sparkles className="mt-0.5 size-4 shrink-0 text-[#E8452C]" />
+
               <p className="text-xs leading-5 text-[#5C443A]">
                 {isVendor
                   ? "Restaurants with a photo and opening hours get more orders. Keep this card fresh."
@@ -866,6 +954,7 @@ export default function ProfilePage({
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8452C]">
                   Edit profile
                 </p>
+
                 <h2
                   className={`${display.className} mt-1 text-xl font-extrabold text-[#2B1B14]`}
                 >
@@ -879,6 +968,7 @@ export default function ProfilePage({
                     dirty ? "bg-[#F2751A]" : "bg-[#2F6B3A]"
                   }`}
                 />
+
                 {dirty ? "Unsaved changes" : "All changes saved"}
               </div>
             </div>
@@ -902,7 +992,9 @@ export default function ProfilePage({
                   id="name"
                   autoComplete="name"
                   value={form.name}
-                  onChange={(event) => updateField("name", event.target.value)}
+                  onChange={(event) =>
+                    updateField("name", event.target.value)
+                  }
                   aria-invalid={Boolean(shownErrors.name)}
                   aria-describedby={
                     shownErrors.name ? "name-error" : undefined
@@ -919,6 +1011,7 @@ export default function ProfilePage({
               >
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A6258]/70" />
+
                   <Input
                     id="email"
                     value={saved.email}
@@ -1003,9 +1096,13 @@ export default function ProfilePage({
                   id="bio"
                   rows={4}
                   value={form.bio}
-                  onChange={(event) => updateField("bio", event.target.value)}
+                  onChange={(event) =>
+                    updateField("bio", event.target.value)
+                  }
                   aria-invalid={Boolean(shownErrors.bio)}
-                  aria-describedby={shownErrors.bio ? "bio-error" : undefined}
+                  aria-describedby={
+                    shownErrors.bio ? "bio-error" : undefined
+                  }
                   placeholder={
                     isVendor
                       ? "Tell customers what makes your restaurant special..."
@@ -1033,9 +1130,11 @@ export default function ProfilePage({
                     <p className="text-sm font-bold text-[#2B1B14]">
                       Profile photo
                     </p>
+
                     <p className="text-xs text-[#7A6258]">
                       {form.image.trim()
-                        ? imageMode === "upload" && form.image.startsWith("data:")
+                        ? imageMode === "upload" &&
+                          form.image.startsWith("data:")
                           ? "Uploaded and optimized automatically."
                           : "Using an image link."
                         : "No photo yet — your initials will shine instead."}
@@ -1149,7 +1248,7 @@ export default function ProfilePage({
                         role="alert"
                         className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-[#C2331B]"
                       >
-                        <TriangleExclamationPoint className="size-3.5 shrink-0" />
+                        <TriangleAlert className="size-3.5 shrink-0" />
                         {shownErrors.image}
                       </p>
                     )}
@@ -1178,7 +1277,7 @@ export default function ProfilePage({
                         role="alert"
                         className="flex items-center gap-1.5 text-xs font-semibold text-[#C2331B]"
                       >
-                        <TriangleExclamationPoint className="size-3.5 shrink-0" />
+                        <TriangleAlert className="size-3.5 shrink-0" />
                         {shownErrors.image}
                       </p>
                     )}
@@ -1246,7 +1345,10 @@ export default function ProfilePage({
                         id="businessLocation"
                         value={form.businessLocation}
                         onChange={(event) =>
-                          updateField("businessLocation", event.target.value)
+                          updateField(
+                            "businessLocation",
+                            event.target.value
+                          )
                         }
                         aria-invalid={Boolean(shownErrors.businessLocation)}
                         aria-describedby={
@@ -1269,7 +1371,10 @@ export default function ProfilePage({
                         id="openingHours"
                         value={form.openingHours}
                         onChange={(event) =>
-                          updateField("openingHours", event.target.value)
+                          updateField(
+                            "openingHours",
+                            event.target.value
+                          )
                         }
                         aria-invalid={Boolean(shownErrors.openingHours)}
                         aria-describedby={
@@ -1301,8 +1406,9 @@ export default function ProfilePage({
                     {feedback.type === "success" ? (
                       <CircleCheck className="mt-0.5 size-4 shrink-0" />
                     ) : (
-                      <TriangleExclamationPoint className="mt-0.5 size-4 shrink-0" />
+                      <TriangleAlert className="mt-0.5 size-4 shrink-0" />
                     )}
+
                     <span>
                       <span className="font-extrabold">
                         {feedback.title}.
@@ -1317,6 +1423,7 @@ export default function ProfilePage({
                         dirty ? "bg-[#F2751A]" : "bg-[#2F6B3A]"
                       }`}
                     />
+
                     {saving
                       ? "Saving your changes..."
                       : dirty
@@ -1330,7 +1437,7 @@ export default function ProfilePage({
                     type="button"
                     variant="outline"
                     onClick={discardChanges}
-                    disabled={!dirty || saving}
+                    disabled={!dirty || saving || imageBusy}
                     className="h-11 rounded-xl border-[#2B1B14]/15 px-4 font-bold"
                   >
                     <RotateCcw className="mr-1.5 size-4" />
@@ -1339,13 +1446,18 @@ export default function ProfilePage({
 
                   <Button
                     type="submit"
-                    disabled={!dirty || saving}
+                    disabled={!dirty || saving || imageBusy}
                     className="h-11 rounded-xl bg-[#E8452C] px-6 font-bold text-white shadow-[0_10px_24px_-12px_rgba(232,69,44,0.9)] hover:bg-[#C2331B]"
                   >
                     {saving ? (
                       <>
                         <LoaderCircle className="mr-1.5 size-4 animate-spin" />
                         Saving...
+                      </>
+                    ) : imageBusy ? (
+                      <>
+                        <LoaderCircle className="mr-1.5 size-4 animate-spin" />
+                        Processing photo...
                       </>
                     ) : (
                       <>

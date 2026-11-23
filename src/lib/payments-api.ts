@@ -1,3 +1,9 @@
+//------i use token in verify checkout---
+
+
+
+
+import { getToken } from "./core/server"
 import { BASE_URL } from "./vendor-menu-api"
 
 // One row of the read-only `transactions` collection
@@ -26,18 +32,34 @@ export type VerifyResult = {
   transaction?: Transaction
 }
 
-// Asks the backend to verify a Stripe Checkout session. The backend saves the
-// transaction and upgrades the account only after Stripe confirms the payment.
-export async function verifyCheckout(sessionId: string): Promise<VerifyResult> {
+
+export async function verifyCheckout(
+  sessionId: string
+): Promise<VerifyResult> {
+  // Outside try/catch on purpose: a redirect to /unauthorized must not be swallowed
+  const token = await getToken()
+
   try {
     const res = await fetch(`${BASE_URL}/payments/checkout-verify`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ sessionId }),
       cache: "no-store",
     })
 
     const data = await res.json().catch(() => null)
+
+    if (!res.ok) {
+      console.error("verifyCheckout failed:", res.status, data)
+      return {
+        success: false,
+        message:
+          data?.message || `Payment verification failed (HTTP ${res.status}).`,
+      }
+    }
 
     if (!data) {
       return {
@@ -47,7 +69,8 @@ export async function verifyCheckout(sessionId: string): Promise<VerifyResult> {
     }
 
     return data
-  } catch {
+  } catch (error) {
+    console.error("verifyCheckout error:", error)
     return {
       success: false,
       message: "Could not reach the payment server. Please try again.",
@@ -55,25 +78,29 @@ export async function verifyCheckout(sessionId: string): Promise<VerifyResult> {
   }
 }
 
-// Payment history. With vendorEmail it returns only that vendor's rows.
-export async function getTransactions(
-  params: { vendorEmail?: string } = {}
-): Promise<Transaction[]> {
-  const query = new URLSearchParams()
-  if (params.vendorEmail) query.set("vendorEmail", params.vendorEmail)
-
-  const qs = query.toString()
+// Payment history. The backend checks the token and decides what you may see:
+// admins get every transaction, vendors only their own.
+export async function getTransactions(): Promise<Transaction[]> {
+  // Outside try/catch on purpose: a redirect to /unauthorized must not be swallowed
+  const token = await getToken()
 
   try {
-    const res = await fetch(
-      `${BASE_URL}/transactions${qs ? `?${qs}` : ""}`,
-      { cache: "no-store" }
-    )
-    if (!res.ok) return []
+    const res = await fetch(`${BASE_URL}/transactions`, {
+      method: "GET",
+      headers: { authorization: `Bearer ${token}` },
+      cache: "no-store",
+    })
+
+    if (!res.ok) {
+      console.error("Failed to fetch transactions:", res.status)
+      return []
+    }
 
     const data = await res.json().catch(() => null)
+
     return Array.isArray(data) ? data : []
-  } catch {
+  } catch (error) {
+    console.error("Transaction fetch error:", error)
     return []
   }
 }

@@ -10,17 +10,20 @@ export async function cancelOrder(
   orderId: string
 ): Promise<{ success: boolean; message?: string }> {
   const session = await getSession()
-  const email = session?.user?.email
+  const token = session?.session?.token
 
-  if (!email) return { success: false, message: "Please sign in again." }
+  if (!token) return { success: false, message: "Please sign in again." }
 
   try {
     const res = await fetch(
       `${API}/orders/${encodeURIComponent(orderId)}/cancel`,
       {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
         cache: "no-store",
       }
     )

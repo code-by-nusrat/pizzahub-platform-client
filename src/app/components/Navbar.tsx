@@ -13,11 +13,12 @@ import {
 } from "@/components/ui/sheet"
 // If your auth-client does not export signOut, use: authClient.signOut()
 import { useSession, signOut } from "@/lib/auth-client"
+import ThemeToggle from "./ThemeToggle"
 
-// Colors
+// Colors. Cream/ink are theme tokens so the navbar turns dark with the toggle.
 const COLORS = {
-  cream: "#FFF8EC",
-  ink: "#1F2A1F",
+  cream: "var(--nav-surface)",
+  ink: "var(--nav-ink)",
   green: "#2F6B3A",
   tomato: "#E8452C",
 }
@@ -212,9 +213,9 @@ export default function Navbar() {
         }`}
         style={{
           backgroundColor: scrolled
-            ? "rgba(255,248,236,0.92)"
+            ? "var(--nav-surface-strong)"
             : COLORS.cream,
-          borderColor: "rgba(31,42,31,0.1)",
+          borderColor: "var(--nav-border)",
         }}
       >
         {/* Logo */}
@@ -223,7 +224,7 @@ export default function Navbar() {
         {/* Desktop navigation */}
         <ul
           className="hidden items-center gap-1 rounded-full p-1 lg:flex"
-          style={{ backgroundColor: "rgba(47,107,58,0.08)" }}
+          style={{ backgroundColor: "var(--nav-pill)" }}
         >
           {links.map((link) => (
             <li key={link.href}>
@@ -241,6 +242,8 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-1 sm:gap-2">
+          <ThemeToggle />
+
           {/* 1) Still checking the session: small placeholder so buttons don't flicker */}
           {isPending && (
             <div className="h-8 w-16 animate-pulse rounded-full bg-black/10 sm:w-24" />
@@ -254,7 +257,7 @@ export default function Navbar() {
                 onClick={() => setUserOpen((value) => !value)}
                 aria-expanded={userOpen}
                 aria-haspopup="menu"
-                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-black/5 sm:pr-3"
+                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-[var(--nav-hover)] sm:pr-3"
                 style={{ color: COLORS.ink }}
               >
                 <Avatar name={displayName} image={user.image} />
@@ -276,7 +279,7 @@ export default function Navbar() {
                   className="absolute right-0 top-full z-50 mt-3 w-[min(16rem,calc(100vw-1.5rem))] rounded-2xl border p-2 shadow-xl"
                   style={{
                     backgroundColor: COLORS.cream,
-                    borderColor: "rgba(31,42,31,0.1)",
+                    borderColor: "var(--nav-border)",
                     color: COLORS.ink,
                   }}
                 >
@@ -290,7 +293,7 @@ export default function Navbar() {
                     </p>
                   </div>
 
-                  <div className="my-1 border-t border-black/10" />
+                  <div className="my-1 border-t border-[var(--nav-border)]" />
 
                   <button
                     type="button"
@@ -340,7 +343,7 @@ export default function Navbar() {
               <Button
                 variant="ghost"
                 onClick={() => go("/sign-in")}
-                className="rounded-full font-semibold hover:bg-black/5"
+                className="rounded-full font-semibold hover:bg-[var(--nav-hover)]"
                 style={{ color: COLORS.ink }}
               >
                 Sign In
@@ -359,7 +362,7 @@ export default function Navbar() {
           {/* Mobile and tablet menu */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full hover:bg-black/5 lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full hover:bg-[var(--nav-hover)] lg:hidden"
               style={{ color: COLORS.ink }}
               aria-label="Open menu"
             >

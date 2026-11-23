@@ -128,3 +128,123 @@
     @apply font-sans;
   }
 }
+
+/* ------------------------------------------------------------------
+   Navbar theme tokens
+   The navbar is the toggle's home, so it switches with the theme.
+-------------------------------------------------------------------*/
+:root {
+  --nav-surface: #fff8ec;
+  --nav-surface-strong: rgba(255, 248, 236, 0.92);
+  --nav-ink: #1f2a1f;
+  --nav-border: rgba(31, 42, 31, 0.1);
+  --nav-hover: rgba(0, 0, 0, 0.05);
+  --nav-pill: rgba(47, 107, 58, 0.08);
+}
+
+.dark {
+  --nav-surface: #151210;
+  --nav-surface-strong: rgba(21, 18, 16, 0.92);
+  --nav-ink: #f3e9de;
+  --nav-border: rgba(255, 255, 255, 0.12);
+  --nav-hover: rgba(255, 255, 255, 0.08);
+  --nav-pill: rgba(255, 255, 255, 0.06);
+}
+
+/* ------------------------------------------------------------------
+   App-wide dark theme
+   Most pages use the cream/ink palette as arbitrary Tailwind values.
+   These rules remap the main surfaces, text and borders when the
+   navbar toggle adds `dark` to <html>.
+-------------------------------------------------------------------*/
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0f0d0b;
+  color: #f3e9de;
+}
+
+html.dark [class*="bg-[#FFF8EC]"],
+html.dark [class*="bg-[#FBF5E6]"],
+html.dark [class*="bg-[#FFFDF7]"] {
+  background-color: #0f0d0b;
+}
+
+html.dark [class*="bg-white"] {
+  background-color: #1a1613;
+}
+
+html.dark [class*="bg-[#2B1B14]"] {
+  background-color: #2a221d;
+}
+
+html.dark [class*="bg-[#FFF0E3]"],
+html.dark [class*="bg-[#FFF1DD]"] {
+  background-color: #2a1c12;
+}
+
+html.dark [class*="bg-[#EAF4E8]"] {
+  background-color: #17241a;
+}
+
+html.dark [class*="bg-[#FCE8E6]"] {
+  background-color: #2a1715;
+}
+
+html.dark [class*="bg-[#E9EEFF]"] {
+  background-color: #171a26;
+}
+
+html.dark [class*="text-[#2B1B14]"],
+html.dark [class*="text-[#1F2A1F]"] {
+  color: #f3e9de;
+}
+
+html.dark [class*="text-[#7A6258]"] {
+  color: #b9a89b;
+}
+
+html.dark [class*="text-[#2F6B3A]"],
+html.dark [class*="text-[#3D8545]"] {
+  color: #7ec98f;
+}
+
+html.dark [class*="text-[#C2561B]"] {
+  color: #f0a06a;
+}
+
+html.dark [class*="text-[#B3261E]"] {
+  color: #f07a72;
+}
+
+html.dark [class*="border-[#2B1B14]"],
+html.dark [class*="border-[#1F2A1F]"] {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Admin screens use Tailwind's slate scale */
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: #1a1613;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f3e9de;
+}
+
+html.dark .text-slate-700 {
+  color: #dccfc3;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #b9a89b;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-100 {
+  border-color: rgba(255, 255, 255, 0.1);
+}

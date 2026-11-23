@@ -6,6 +6,7 @@ import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getMenuItem } from "@/lib/vendor-menu-api"
 import OrderPanel from "./OrderPanel"
+import Navbar from "@/app/components/Navbar"
 
 const serif = Fraunces({ subsets: ["latin"], style: ["normal", "italic"] })
 
@@ -36,9 +37,15 @@ export default async function MenuDetailsPage({
     })
     if (!session?.user) redirect("/sign-in")
 
-    // Only customers can open this page. Admins and vendors go back to the menu.
+    // Only customers may open the details page.
+    // Vendors and admins are blocked (same page the rest of the app uses).
+    // (The backend also refuses orders from anyone but customers.)
     const role = (session.user as { role?: string }).role
-    if (role !== "customer") redirect("/browse-menu")
+    if (role !== "customer") redirect("/unauthorized")
+
+    if ((session.user as { status?: string }).status === "blocked") {
+        redirect("/blocked")
+    }
 
     const item = await getMenuItem(id)
 
@@ -51,7 +58,7 @@ export default async function MenuDetailsPage({
 
     return (
         <main
-            className="min-h-screen bg-[#FBF5E6] px-4 py-6 sm:px-8 sm:py-10"
+            className="min-h-screen bg-[#FBF5E6] px-4 py-2 sm:px-8 sm:py-2"
             style={{
                 backgroundImage:
                     "radial-gradient(rgba(20,83,45,0.09) 1px, transparent 1px)",
@@ -59,6 +66,7 @@ export default async function MenuDetailsPage({
             }}
         >
             <div className="mx-auto max-w-5xl">
+                <Navbar></Navbar>
                 {/* Top line */}
                 <div className="flex items-center justify-between gap-4 text-sm font-medium text-green-800">
                     <Link
@@ -211,7 +219,7 @@ function Leader({ label, value }: { label: string; value: string }) {
             </dt>
             <span
                 aria-hidden
-                className="flex-1 translate-y-[-3px] border-b-2 border-dotted border-green-900/30"
+                className="flex-1 -translate-y-0.75 border-b-2 border-dotted border-green-900/30"
             />
             <dd className="min-w-0 truncate text-right font-semibold">{value}</dd>
         </div>

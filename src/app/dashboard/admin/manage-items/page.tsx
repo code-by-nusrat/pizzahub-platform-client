@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import "react-toastify/dist/ReactToastify.css"
 import { BASE_URL } from "@/lib/vendor-menu-api"
-import { authClient } from "@/lib/auth-client"
+import { clientFetch } from "@/lib/client-api"
 
 type ApprovalStatus = "pending" | "approved" | "rejected"
 
@@ -105,9 +105,8 @@ export default function ManageItemsPage() {
             setLoading(true)
             setError("")
 
-            const response = await fetch(
-                `${API_URL}/menu?approvalStatus=all`,
-                { cache: "no-store" }
+            const response = await clientFetch(
+                `${API_URL}/menu?approvalStatus=all`
             )
 
             if (!response.ok) {
@@ -177,17 +176,14 @@ export default function ManageItemsPage() {
             item.approvalStatus === "approved" && item.isAvailable
     ).length
 
-    const rejectedCount = items.filter(
-        (item) => item.approvalStatus === "rejected"
-    ).length
-
-    // Update approval status
+    // Update approval status. The backend only accepts "approved" or
+    // "pending": unpublishing an item means moving it back to pending.
     const updateApproval = async (
         id: string,
-        approvalStatus: "approved" | "rejected"
+        approvalStatus: "approved" | "pending"
     ) => {
         const action =
-            approvalStatus === "approved" ? "approve" : "reject"
+            approvalStatus === "approved" ? "approve" : "hide from customers"
 
         if (
             !(await confirmWithToast(
@@ -200,20 +196,14 @@ export default function ManageItemsPage() {
         try {
             setBusyId(id)
 
-            const sessionResult = await authClient.getSession()
-            const adminEmail = sessionResult.data?.user?.email ?? ""
-
-            const response = await fetch(
+            const response = await clientFetch(
                 `${API_URL}/menu/${id}/moderation`,
                 {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({
-                        approvalStatus,
-                        adminEmail,
-                    }),
+                    body: JSON.stringify({ approvalStatus }),
                 }
             )
 
@@ -242,7 +232,11 @@ export default function ManageItemsPage() {
                     "Approved, but this vendor has reached the maximum number of active dishes on the free plan."
                 )
             } else {
-                toast.success(`Item ${action}d successfully!`)
+                toast.success(
+                    approvalStatus === "approved"
+                        ? "Item approved successfully!"
+                        : "Item hidden from customers."
+                )
             }
         } catch (err) {
             toast.error(
@@ -272,10 +266,7 @@ export default function ManageItemsPage() {
         try {
             setBusyId(item._id)
 
-            const sessionResult = await authClient.getSession()
-            const adminEmail = sessionResult.data?.user?.email ?? ""
-
-            const response = await fetch(
+            const response = await clientFetch(
                 `${API_URL}/menu/${item._id}/availability`,
                 {
                     method: "PATCH",
@@ -284,7 +275,6 @@ export default function ManageItemsPage() {
                     },
                     body: JSON.stringify({
                         isAvailable: nextAvailability,
-                        adminEmail,
                     }),
                 }
             )
@@ -312,74 +302,6 @@ export default function ManageItemsPage() {
                 `${item.name} ${
                     nextAvailability ? "activated" : "deactivated"
                 } successfully!`
-            )
-        } catch (err) {
-            toast.error(
-                err instanceof Error
-                    ? err.message
-                    : "Something went wrong."
-            )
-        } finally {
-            setBusyId(null)
-        }
-    }
-
-    // Move item to rejected instead of permanently deleting it
-    const deleteItem = async (item: MenuItem) => {
-        if (
-            !(await confirmWithToast(
-                `Are you sure you want to move "${item.name}" to rejected items?`
-            ))
-        ) {
-            return
-        }
-
-        try {
-            setBusyId(item._id)
-
-            const sessionResult = await authClient.getSession()
-            const adminEmail = sessionResult.data?.user?.email ?? ""
-
-            const response = await fetch(
-                `${API_URL}/menu/${item._id}/moderation`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        approvalStatus: "rejected",
-                        adminEmail,
-                    }),
-                }
-            )
-
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || "Could not move item to rejected."
-                )
-            }
-
-            setItems((previous) =>
-                previous.map((current) =>
-                    current._id === item._id
-                        ? {
-                              ...current,
-                              approvalStatus: "rejected",
-                              isAvailable: false,
-                          }
-                        : current
-                )
-            )
-
-            if (selectedItem?._id === item._id) {
-                setSelectedItem(null)
-            }
-
-            toast.success(
-                "Item moved to rejected items successfully!"
             )
         } catch (err) {
             toast.error(
@@ -534,7 +456,7 @@ export default function ManageItemsPage() {
                             <p className="mt-1 text-xs text-slate-500">
                                 Showing {filteredItems.length} of {items.length} items
                                 {" · "}
-                                {rejectedCount} rejected
+                                {pendingCount} pending review
                             </p>
                         </div>
                     </div>
@@ -671,33 +593,20 @@ export default function ManageItemsPage() {
                                             </button>
 
                                             {item.approvalStatus === "pending" && (
-                                                <>
-                                                    <button
-                                                        onClick={() =>
-                                                            updateApproval(item._id, "approved")
-                                                        }
-                                                        disabled={isBusy}
-                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                                                    >
-                                                        {isBusy ? (
-                                                            <Loader2 size={14} className="animate-spin" />
-                                                        ) : (
-                                                            <CheckCircle2 size={14} />
-                                                        )}
-                                                        Approve
-                                                    </button>
-
-                                                    <button
-                                                        onClick={() =>
-                                                            updateApproval(item._id, "rejected")
-                                                        }
-                                                        disabled={isBusy}
-                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50"
-                                                    >
-                                                        <XCircle size={14} />
-                                                        Reject
-                                                    </button>
-                                                </>
+                                                <button
+                                                    onClick={() =>
+                                                        updateApproval(item._id, "approved")
+                                                    }
+                                                    disabled={isBusy}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                                                >
+                                                    {isBusy ? (
+                                                        <Loader2 size={14} className="animate-spin" />
+                                                    ) : (
+                                                        <CheckCircle2 size={14} />
+                                                    )}
+                                                    Approve
+                                                </button>
                                             )}
 
                                             {item.approvalStatus === "approved" && (
@@ -726,14 +635,14 @@ export default function ManageItemsPage() {
 
                                                     <button
                                                         onClick={() =>
-                                                            updateApproval(item._id, "rejected")
+                                                            updateApproval(item._id, "pending")
                                                         }
                                                         disabled={isBusy}
-                                                        title="Move to rejected"
+                                                        title="Hide from customers"
                                                         className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50"
                                                     >
                                                         <XCircle size={14} />
-                                                        Unpublish
+                                                        Hide
                                                     </button>
                                                 </>
                                             )}
@@ -755,16 +664,6 @@ export default function ManageItemsPage() {
                                                     Approve again
                                                 </button>
                                             )}
-
-                                            <button
-                                                onClick={() => deleteItem(item)}
-                                                disabled={isBusy || item.approvalStatus === "rejected"}
-                                                title="Move item to rejected"
-                                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                                            >
-                                                <XCircle size={14} />
-                                                Move to Rejected
-                                            </button>
                                         </div>
                                     </article>
                                 )
