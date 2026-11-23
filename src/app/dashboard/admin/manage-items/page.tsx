@@ -180,12 +180,15 @@ export default function ManageItemsPage() {
     // "pending": unpublishing an item means moving it back to pending.
    
 // Update approval status
+
 const updateApproval = async (
     id: string,
     approvalStatus: "approved" | "pending"
 ) => {
     const action =
-        approvalStatus === "approved" ? "approve" : "hide from customers"
+        approvalStatus === "approved"
+            ? "approve"
+            : "hide from customers"
 
     if (
         !(await confirmWithToast(
@@ -217,7 +220,7 @@ const updateApproval = async (
             )
         }
 
-        // Update the frontend menu item
+        // Update the item using the actual backend response
         setItems((previous) =>
             previous.map((item) =>
                 item._id === id
@@ -230,27 +233,19 @@ const updateApproval = async (
             )
         )
 
-        // Special warning when the vendor already has 3 active items
+        // Show warning if approved but not active
         if (
-            approvalStatus === "approved" &&
             data.approvalStatus === "approved" &&
-            data.isAvailable === false &&
-            data.limit !== null
+            data.isAvailable === false
         ) {
             toast.warning(
-                `Warning! This vendor already has ${data.activeItems} active menu items. The item is approved but remains unavailable. Free vendors can publish only ${data.limit} items.`,
-                {
-                    autoClose: 6000,
-                }
+                data.message ||
+                    `Item approved, but the vendor has reached the ${data.limit}-item limit.`,
+                { autoClose: 6000 }
             )
         } else {
-            toast.success(
-                approvalStatus === "approved"
-                    ? "Menu item approved successfully!"
-                    : "Item hidden from customers."
-            )
+            toast.success(data.message || "Item updated successfully!")
         }
-
     } catch (err) {
         toast.error(
             err instanceof Error
@@ -261,6 +256,7 @@ const updateApproval = async (
         setBusyId(null)
     }
 }
+
 
 
     // Activate or deactivate an approved item
