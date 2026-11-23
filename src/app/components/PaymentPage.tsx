@@ -643,6 +643,7 @@ import { Bricolage_Grotesque } from "next/font/google"
 
 import { useCart } from "@/lib/cart"
 import { placeOrder } from "@/lib/order-actions"
+import Navbar from "./Navbar"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -769,8 +770,8 @@ const PaymentPage = ({ customer }: { customer: Customer }) => {
   )
 
   return (
-    <main className="min-h-screen bg-[#FFF8EC] px-4 py-8 sm:px-8 lg:py-12">
-
+    <main className="min-h-screen bg-[#FFF8EC] px-4 py-2 sm:px-8 lg:py-2">
+      <Navbar></Navbar>
       {/* Success toast */}
       {toast && (
         <div
@@ -806,13 +807,13 @@ const PaymentPage = ({ customer }: { customer: Customer }) => {
         {/* Header */}
         <div className="mb-10 flex flex-wrap items-center justify-between gap-5">
           <div>
-            <Link
+            {/* <Link
               href="/browse-menu"
               className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#7A6258] transition hover:text-[#E8452C]"
             >
               <ArrowLeft size={16} />
               Back to menu
-            </Link>
+            </Link> */}
 
             <h1
               className={`${display.className} text-3xl font-extrabold tracking-tight text-[#2B1B14] sm:text-4xl`}
