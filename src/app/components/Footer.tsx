@@ -77,10 +77,10 @@ function YoutubeIcon({ className }: { className?: string }) {
 }
 
 const SOCIALS = [
-  { name: "X", href: "https://x.com", Icon: XIcon },
-  { name: "Facebook", href: "https://facebook.com", Icon: FacebookIcon },
-  { name: "Instagram", href: "https://instagram.com", Icon: InstagramIcon },
-  { name: "YouTube", href: "https://youtube.com", Icon: YoutubeIcon },
+  { name: "X", Icon: XIcon },
+  { name: "Facebook",Icon: FacebookIcon },
+  { name: "Instagram",  Icon: InstagramIcon },
+  { name: "YouTube", Icon: YoutubeIcon },
 ]
 
 const MENU_LINKS = [
