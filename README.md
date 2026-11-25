@@ -6,7 +6,13 @@ PizzaHub is a full-stack food ordering platform with three roles:
 - **Vendors** manage a restaurant profile and menu, upload dish photos, accept or reject customer orders and manage a subscription plan.
 - **Admins** manage users, moderate menu items, and review platform transactions.
 
-The frontend is a Next.js App Router application; the API is a separate Express + MongoDB service. Authentication is handled by **Better Auth**, and every private API call is authorized on the server with a Bearer session token and a role check.
+The frontend is a Next.js App Router application; the API is a separate Express + MongoDB service. Authentication is handled by **Better Auth**, and every private API call
+is authorized on the server with a Bearer session token and a role check.
+
+
+# Banner
+<img width="3200" height="1040" alt="image" src="https://github.com/user-attachments/assets/6778c2b5-69f1-4eea-b469-ec0df0e264ce" />
+
 
 ## 🌐 Live Project
 
