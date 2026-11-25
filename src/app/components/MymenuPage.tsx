@@ -169,7 +169,7 @@ export default function MyMenuPage({
 
   // View item
   function viewItem(item: MenuItem) {
-      setViewing(item)
+    setViewing(item)
   }
 
   // Open edit dialog
@@ -255,7 +255,11 @@ export default function MyMenuPage({
         )
       )
 
-      toast.success("Availability updated!")
+      toast.success(
+        available
+          ? "Item is now visible in Browse Menu."
+          : "Item removed from Browse Menu."
+      )
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not update availability."
@@ -275,7 +279,7 @@ export default function MyMenuPage({
 
   return (
     <div className="min-h-screen space-y-6 bg-[#FFF8EC] p-4 sm:p-6">
-     
+
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 rounded-2xl bg-linear-to-r from-[#E8452C] to-[#F2751A] p-6 text-white sm:flex-row sm:items-center">
         <div>
@@ -318,19 +322,17 @@ export default function MyMenuPage({
 
       {/* Plan / publishing limit */}
       <div
-        className={`flex flex-col justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center ${
-          limitReached
-            ? "border-[#E8452C]/40 bg-[#E8452C]/5"
-            : "border-[#2B1B14]/10 bg-white"
-        }`}
+        className={`flex flex-col justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center ${limitReached
+          ? "border-[#E8452C]/40 bg-[#E8452C]/5"
+          : "border-[#2B1B14]/10 bg-white"
+          }`}
       >
         <div className="flex items-start gap-3">
           <span
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-              premium
-                ? "bg-[#EAF4E8] text-[#3D8545]"
-                : "bg-[#FFF1DD] text-[#E8452C]"
-            }`}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${premium
+              ? "bg-[#EAF4E8] text-[#3D8545]"
+              : "bg-[#FFF1DD] text-[#E8452C]"
+              }`}
           >
             <Sparkles className="h-5 w-5" />
           </span>
@@ -342,9 +344,8 @@ export default function MyMenuPage({
             <p className="mt-0.5 text-sm text-[#7A6258]">
               {premium
                 ? "Unlimited active menu items."
-                : `${activeCount} of ${
-                    typeof activeItemLimit === "number" ? activeItemLimit : 3
-                  } active items published. Upgrade to Premium before publishing more.`}
+                : `${activeCount} of ${typeof activeItemLimit === "number" ? activeItemLimit : 3
+                } active items published. Upgrade to Premium before publishing more.`}
             </p>
           </div>
         </div>
@@ -352,11 +353,10 @@ export default function MyMenuPage({
         {!premium && (
           <Link
             href="/dashboard/vendor/subscription"
-            className={`inline-flex h-10 shrink-0 items-center justify-center px-5 text-sm font-bold uppercase tracking-wider text-white transition-colors ${
-              limitReached
-                ? "bg-[#E8452C] hover:bg-[#C2331B]"
-                : "bg-[#2B1B14] hover:bg-black"
-            }`}
+            className={`inline-flex h-10 shrink-0 items-center justify-center px-5 text-sm font-bold uppercase tracking-wider text-white transition-colors ${limitReached
+              ? "bg-[#E8452C] hover:bg-[#C2331B]"
+              : "bg-[#2B1B14] hover:bg-black"
+              }`}
           >
             Upgrade to Premium
           </Link>
@@ -452,13 +452,33 @@ export default function MyMenuPage({
                     </TableCell>
 
                     <TableCell>
-                      <Switch
+                      {/* <Switch
                         checked={item.isAvailable}
                         disabled={item.approvalStatus !== "approved"}
                         onCheckedChange={(checked) =>
                           handleAvailability(item, checked)
                         }
-                      />
+                      /> */}
+                      <span
+                        title={
+                          item.approvalStatus !== "approved"
+                            ? "Available after admin approval"
+                            : !item.isAvailable && limitReached
+                              ? "Free plan limit reached. Upgrade to Premium."
+                              : item.isAvailable
+                                ? "Visible in Browse Menu"
+                                : "Hidden from Browse Menu"
+                        }
+                      >
+                        <Switch
+                          checked={item.isAvailable}
+                          disabled={
+                            item.approvalStatus !== "approved" ||
+                            (!item.isAvailable && limitReached)
+                          }
+                          onCheckedChange={(checked) => handleAvailability(item, checked)}
+                        />
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -500,38 +520,38 @@ export default function MyMenuPage({
         )}
       </div>
       {/* View Item Dialog */}
-<Dialog
-  open={!!viewing}
-  onOpenChange={(open) => {
-    if (!open) setViewing(null)
-  }}
->
-  <DialogContent className="sm:max-w-md">
-    <DialogHeader>
-      <DialogTitle>Menu Item Details</DialogTitle>
-      <DialogDescription>
-        Complete information about this item.
-      </DialogDescription>
-    </DialogHeader>
+      <Dialog
+        open={!!viewing}
+        onOpenChange={(open) => {
+          if (!open) setViewing(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Menu Item Details</DialogTitle>
+            <DialogDescription>
+              Complete information about this item.
+            </DialogDescription>
+          </DialogHeader>
 
-    {viewing && (
-      <div className="space-y-3">
-        <MenuImage src={viewing.image} alt={viewing.name} />
+          {viewing && (
+            <div className="space-y-3">
+              <MenuImage src={viewing.image} alt={viewing.name} />
 
-        <p><strong>Name:</strong> {viewing.name}</p>
-        <p><strong>Category:</strong> {viewing.category}</p>
-        <p><strong>Description:</strong> {viewing.description}</p>
-        <p><strong>Price:</strong> ৳{viewing.price}</p>
-        <p><strong>Location:</strong> {viewing.location}</p>
-        <p><strong>Approval:</strong> {viewing.approvalStatus}</p>
-        <p>
-          <strong>Availability:</strong>{" "}
-          {viewing.isAvailable ? "Available" : "Unavailable"}
-        </p>
-      </div>
-    )}
-  </DialogContent>
-</Dialog>
+              <p><strong>Name:</strong> {viewing.name}</p>
+              <p><strong>Category:</strong> {viewing.category}</p>
+              <p><strong>Description:</strong> {viewing.description}</p>
+              <p><strong>Price:</strong> ৳{viewing.price}</p>
+              <p><strong>Location:</strong> {viewing.location}</p>
+              <p><strong>Approval:</strong> {viewing.approvalStatus}</p>
+              <p>
+                <strong>Availability:</strong>{" "}
+                {viewing.isAvailable ? "Available" : "Unavailable"}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog

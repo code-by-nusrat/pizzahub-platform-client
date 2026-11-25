@@ -17,49 +17,56 @@ import {
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
 // `label` is what customers see.
-// `query` must match the category saved on your menu items, because
-// the browse page filters by it (for example /browse-menu?category=Pizza).
+// `href` opens the browse page already filtered. Category filters use the
+// exact category saved on the menu item; the pizza-style collections use the
+// public search endpoint (dish name) so they still return dishes today.
 const categories = [
   {
-    label: "Pizza",
-    query: "Pizza",
+    key: "classic",
+    label: "Classic Pizzas",
+    href: "/browse-menu?category=Pizza",
     emoji: "🍕",
     blurb: "Stone-baked pies with your favourite toppings.",
     color: "#E8452C",
   },
   {
-    label: "Burgers",
-    query: "Burger",
-    emoji: "🍔",
-    blurb: "Stacked patties, fresh buns and crunchy veg.",
-    color: "#B8401F",
-  },
-  {
-    label: "Pasta",
-    query: "Pasta",
-    emoji: "🍝",
-    blurb: "Creamy, saucy bowls made to order.",
-    color: "#E9A92B",
-  },
-  {
-    label: "Sides",
-    query: "Sides",
-    emoji: "🍟",
-    blurb: "Crispy starters to share while you wait.",
+    key: "vegetarian",
+    label: "Vegetarian Pizzas",
+    href: "/browse-menu?search=Margherita",
+    emoji: "🥬",
+    blurb: "Garden-fresh pies, like our Classic Margherita.",
     color: "#6FAF4B",
   },
   {
-    label: "Desserts",
-    query: "Dessert",
-    emoji: "🍰",
-    blurb: "Sweet finishes to round off your meal.",
+    key: "meat",
+    label: "Meat Lovers",
+    href: "/browse-menu?search=BBQ",
+    emoji: "🍖",
+    blurb: "Smoky, savoury toppings for serious appetites.",
+    color: "#B8401F",
+  },
+  {
+    key: "specialty",
+    label: "Specialty / Gourmet",
+    href: "/browse-menu?search=Royale",
+    emoji: "✨",
+    blurb: "Chef's bold, one-of-a-kind creations.",
+    color: "#E9A92B",
+  },
+  {
+    key: "sides",
+    label: "Sides & Appetizers",
+    href: "/browse-menu?category=Sides",
+    emoji: "🍟",
+    blurb: "Crispy starters to share while you wait.",
     color: "#F2751A",
   },
   {
-    label: "Drinks",
-    query: "Drinks",
-    emoji: "🥤",
-    blurb: "Cold drinks and refreshing sips.",
+    key: "beverages",
+    label: "Beverages & Desserts",
+    href: "/browse-menu?category=Dessert",
+    emoji: "🍰",
+    blurb: "Sweet finishes and refreshing sips.",
     color: "#8A5530",
   },
 ]
@@ -101,9 +108,6 @@ const slices = categories.map((category, i) => {
     pullY: round(Math.sin(rad) * PULL),
   }
 })
-
-const hrefFor = (query: string) =>
-  `/browse-menu?category=${encodeURIComponent(query)}`
 
 const CategorySection = () => {
   return (
@@ -170,8 +174,8 @@ const CategorySection = () => {
 
                   {slices.map((slice) => (
                     <Link
-                      key={slice.query}
-                      href={hrefFor(slice.query)}
+                      key={slice.key}
+                      href={slice.href}
                       tabIndex={-1}
                       className="cursor-pointer transition-transform duration-300 ease-out hover:[transform:translate(var(--pull-x),var(--pull-y))] motion-reduce:transition-none"
                       style={
@@ -226,9 +230,9 @@ const CategorySection = () => {
                 className="divide-y divide-white/15 border-y border-white/15"
               >
                 {categories.map((category, i) => (
-                  <motion.li key={category.query} variants={slideIn}>
+                  <motion.li key={category.key} variants={slideIn}>
                     <Link
-                      href={hrefFor(category.query)}
+                      href={category.href}
                       className="group flex items-center gap-4 px-2 py-4 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFC857] sm:gap-5 sm:px-4"
                     >
                       <span className="w-7 shrink-0 text-sm font-bold text-[#FFC857]">

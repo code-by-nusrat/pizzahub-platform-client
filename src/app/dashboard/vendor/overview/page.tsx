@@ -12,6 +12,10 @@ import {
 import { Bricolage_Grotesque } from "next/font/google"
 
 import { getSession, getToken } from "@/lib/core/server"
+import {
+  BreakdownDonut,
+  StatusBarChart,
+} from "@/app/components/OverviewCharts"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -83,6 +87,22 @@ const VendorOverviewPage = async () => {
 
   const activeItems = items.filter((item) => item.isAvailable).length
   const premium = Boolean(plan?.premium)
+
+  const orderSlices = [
+    { name: "Pending", value: countOrders("pending"), color: "#E9A92B" },
+    { name: "Accepted", value: countOrders("accepted"), color: "#2F6B3A" },
+    { name: "Rejected", value: countOrders("rejected"), color: "#B3261E" },
+    { name: "Cancelled", value: countOrders("cancelled"), color: "#7A6258" },
+  ]
+
+  const menuSlices = [
+    { name: "Active", value: activeItems, color: "#2F6B3A" },
+    {
+      name: "Hidden",
+      value: Math.max(items.length - activeItems, 0),
+      color: "#B9A79B",
+    },
+  ]
 
   const stats: Stat[] = [
     {
@@ -156,6 +176,20 @@ const VendorOverviewPage = async () => {
             </li>
           ))}
         </ul>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <StatusBarChart
+            title="Orders by status"
+            description="Where your customer orders stand today."
+            data={orderSlices}
+            valueLabel="Orders"
+          />
+          <BreakdownDonut
+            title="Menu availability"
+            description="Active dishes versus hidden ones."
+            data={menuSlices}
+          />
+        </div>
 
         {/* Subscription */}
         <div className="mt-5 flex flex-col justify-between gap-4 border border-[#2B1B14]/10 bg-white p-5 sm:flex-row sm:items-center">

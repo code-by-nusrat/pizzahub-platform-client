@@ -95,6 +95,9 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
+    // The carousel reports its initial selection to the parent here; this is
+    // the documented embla/shadcn pattern, so the compiler rule is expected.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)

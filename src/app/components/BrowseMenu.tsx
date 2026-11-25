@@ -440,7 +440,7 @@ function MenuCard({ item }: { item: MenuItem }) {
         </p>
 
         <Link
-          href={`/browse-menu/${item._id}`}
+          href={`/menu/${item._id}`}
           className="mt-4 flex h-10 w-full items-center justify-center bg-[#2B1B14] text-sm font-semibold text-white transition-colors hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8452C]"
         >
           View Details

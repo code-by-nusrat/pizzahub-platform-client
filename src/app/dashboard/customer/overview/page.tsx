@@ -12,6 +12,10 @@ import {
 import { Bricolage_Grotesque } from "next/font/google"
 
 import { getSession, getToken } from "@/lib/core/server"
+import {
+  BreakdownDonut,
+  StatusBarChart,
+} from "@/app/components/OverviewCharts"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -60,6 +64,13 @@ const token = await getToken()
     orders.filter((o) => (o.status || "pending") === status).length
 
   const cancelled = countOf("cancelled")
+
+  const statusSlices = [
+    { name: "Pending", value: countOf("pending"), color: "#E9A92B" },
+    { name: "Accepted", value: countOf("accepted"), color: "#2F6B3A" },
+    { name: "Rejected", value: countOf("rejected"), color: "#B3261E" },
+    { name: "Cancelled", value: cancelled, color: "#7A6258" },
+  ]
 
   const stats: Stat[] = [
     {
@@ -142,6 +153,20 @@ const token = await getToken()
             </li>
           ))}
         </ul>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <StatusBarChart
+            title="Your orders by status"
+            description="A quick count of where each order stands."
+            data={statusSlices}
+            valueLabel="Orders"
+          />
+          <BreakdownDonut
+            title="Order mix"
+            description="How your orders are split across statuses."
+            data={statusSlices}
+          />
+        </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <Link

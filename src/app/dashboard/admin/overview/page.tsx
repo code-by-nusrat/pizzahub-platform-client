@@ -13,6 +13,10 @@ import {
 import { Bricolage_Grotesque } from "next/font/google"
 
 import { getSession, getToken } from "@/lib/core/server"
+import {
+  BreakdownDonut,
+  StatusBarChart,
+} from "@/app/components/OverviewCharts"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"] })
 
@@ -61,8 +65,7 @@ const AdminOverviewPage = async () => {
   // The token identifies the admin; no email query is needed.
   const stats = await getStats(token)
 
-  const tiles: Stat[] = [
-    {
+  const tiles: Stat[] = [    {
       label: "Registered users",
       value: stats?.totalUsers ?? 0,
       hint: "Everyone with a PizzaHub account",
@@ -110,6 +113,24 @@ const AdminOverviewPage = async () => {
       tone: "bg-[#FCE8E6] text-[#B3261E]",
       href: "/dashboard/admin/transactions",
     },
+  ]
+
+  const totalUsers = stats?.totalUsers ?? 0
+  const vendors = stats?.totalVendors ?? 0
+  const customers = stats?.totalCustomers ?? 0
+  const admins = Math.max(totalUsers - vendors - customers, 0)
+  const totalMenuItems = stats?.totalMenuItems ?? 0
+  const pendingItems = stats?.pendingMenuItems ?? 0
+
+  const accountSlices = [
+    { name: "Customers", value: customers, color: "#2F6B3A" },
+    { name: "Vendors", value: vendors, color: "#E8452C" },
+    { name: "Admins", value: admins, color: "#2B1B14" },
+  ]
+
+  const menuSlices = [
+    { name: "Approved", value: Math.max(totalMenuItems - pendingItems, 0), color: "#2F6B3A" },
+    { name: "Pending", value: pendingItems, color: "#E9A92B" },
   ]
 
   return (
@@ -167,6 +188,20 @@ const AdminOverviewPage = async () => {
             </li>
           ))}
         </ul>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <BreakdownDonut
+            title="Accounts by role"
+            description="Who is using PizzaHub right now."
+            data={accountSlices}
+          />
+          <StatusBarChart
+            title="Menu review status"
+            description="Approved dishes versus ones still waiting."
+            data={menuSlices}
+            valueLabel="Dishes"
+          />
+        </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <Link

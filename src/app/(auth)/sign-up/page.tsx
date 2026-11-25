@@ -172,7 +172,13 @@ export default function SignUpPage() {
         });
 
         setTimeout(() => {
-          router.push("/");
+          // Send the new account to the dashboard for the role it registered with.
+          router.push(
+            role === "vendor"
+              ? "/dashboard/vendor/overview"
+              : "/dashboard/customer/overview"
+          );
+          router.refresh();
         }, 1500);
       }
     } catch (err) {

@@ -182,7 +182,7 @@ export default function Hero() {
 
                         {/* CTA button */}
                         <div className="mt-5 flex sm:mt-8">
-                            <Link href='/browse-menu'>
+                            <Link href='/browse-menu?category=Pizza'>
                             <Button
                                 size="lg"
                                 className="group h-10 rounded-full px-4 text-xs font-bold text-white shadow-lg hover:opacity-90 sm:h-12 sm:px-6 sm:text-base lg:h-14 lg:px-8"

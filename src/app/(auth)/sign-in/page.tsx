@@ -43,7 +43,7 @@ export default function SignInPage() {
       const { data,error } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/",
+        callbackURL: "/dashboard",
       });
       if(data){
         toast.success("Sign-in successfully")
@@ -54,7 +54,16 @@ export default function SignInPage() {
         return;
       }
 
-      router.push("/");
+      // Send each account to the dashboard that belongs to its role.
+      const signedInRole = (data?.user as { role?: string } | undefined)?.role;
+      const target =
+        signedInRole === "admin"
+          ? "/dashboard/admin/overview"
+          : signedInRole === "vendor"
+            ? "/dashboard/vendor/overview"
+            : "/dashboard/customer/overview";
+
+      router.push(target);
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -71,7 +80,8 @@ const handleGoogleSignIn = async () => {
   try {
     const { data, error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/",
+      // /dashboard reads the session and forwards to the role's overview.
+      callbackURL: "/dashboard",
       errorCallbackURL: "/sign-in",
     });
 

@@ -1,5 +1,6 @@
 
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 
@@ -87,6 +88,27 @@ export const auth = betterAuth({
         input: false,
       },
     },
+  },
+
+  // ---------- Server-side password policy ----------
+  // The sign-up form checks this too, but the rule has to hold even when the
+  // request does not come from our UI.
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/sign-up/email") return;
+
+      const body = ctx.body as { password?: unknown } | undefined;
+      const password = body?.password;
+
+      if (typeof password !== "string") return;
+
+      if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+        throw new APIError("BAD_REQUEST", {
+          message:
+            "Password must include at least one uppercase and one lowercase letter.",
+        });
+      }
+    }),
   },
 
   // ---------- Database Hooks ----------

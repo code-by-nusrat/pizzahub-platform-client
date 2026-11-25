@@ -83,6 +83,15 @@ const SOCIALS = [
   { name: "YouTube", href: "https://youtube.com", Icon: YoutubeIcon },
 ]
 
+const MENU_LINKS = [
+  { label: "Pizza", query: "Pizza" },
+  { label: "Burgers", query: "Burger" },
+  { label: "Pasta", query: "Pasta" },
+  { label: "Sides", query: "Sides" },
+  { label: "Desserts", query: "Dessert" },
+  { label: "Drinks", query: "Drinks" },
+]
+
 const Footer = () => {
   return (
     <footer className="bg-[#1F2A1F] text-[#FFF8EC]">
@@ -157,18 +166,16 @@ const Footer = () => {
             </h3>
 
             <ul className="space-y-2 text-sm text-[#FFF8EC]/70">
-              {["Pizza", "Burgers", "Pasta", "Sides", "Desserts", "Drinks"].map(
-                (item) => (
-                  <li key={item}>
-                    <Link
-                      href={`/browse-menu?category=${encodeURIComponent(item)}`}
-                      className="transition hover:text-[#FFC857]"
-                    >
-                      {item}
-                    </Link>
-                  </li>
-                )
-              )}
+              {MENU_LINKS.map((item) => (
+                <li key={item.query}>
+                  <Link
+                    href={`/browse-menu?category=${encodeURIComponent(item.query)}`}
+                    className="transition hover:text-[#FFC857]"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -187,30 +194,30 @@ const Footer = () => {
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 shrink-0 text-[#E8452C]" />
                 <a
-                  href="tel:+8801XXXXXXXXX"
+                  href="tel:+8801700123456"
                   className="transition hover:text-[#FFC857]"
                 >
-                  +880 1XXX-XXXXXX
+                  +880 1700-123456
                 </a>
               </li>
 
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0 text-[#E8452C]" />
                 <a
-                  href="mailto:support@yourdomain.com"
+                  href="mailto:support@pizzahub.com"
                   className="break-all transition hover:text-[#FFC857]"
                 >
-                  support@yourdomain.com
+                  support@pizzahub.com
                 </a>
               </li>
             </ul>
 
-            <Link
-              href="/contact"
+            <a
+              href="mailto:support@pizzahub.com"
               className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#FFC857] transition hover:text-white"
             >
               Contact us <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            </a>
           </div>
         </div>
 

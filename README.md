@@ -1,375 +1,243 @@
-# 🍕 PizzaHub – Online Pizza Ordering & Restaurant Management Platform
+# 🍕 PizzaHub — Online Pizza Ordering & Restaurant Management Platform
 
-PizzaHub is a full-stack food ordering platform where customers can explore restaurants, browse delicious pizza menus, place orders, and make secure online payments. Vendors can manage their restaurants, menu items, and customer orders, while administrators can manage platform activities and maintain control over users and content.
+PizzaHub is a full-stack food ordering platform with three roles:
 
-The platform provides role-based dashboards for **Customers, Vendors, and Admins**, with secure authentication, protected APIs, and an integrated payment system.
+- **Customers** browse approved menu items, place orders with a delivery date and address, track order status and cancel pending orders.
+- **Vendors** manage a restaurant profile and menu, upload dish photos, accept or reject customer orders and manage a subscription plan.
+- **Admins** manage users, moderate menu items, and review platform transactions.
 
-## 🌐 Live Demo
+The frontend is a Next.js App Router application; the API is a separate Express + MongoDB service. Authentication is handled by **Better Auth**, and every private API call is authorized on the server with a Bearer session token and a role check.
 
-- **Live Website:** [Add your deployed frontend URL]
-- **Backend API:** [Add your deployed backend URL]
+## 🌐 Live Project
+
+| | URL |
+|---|---|
+| **Live website (client)** | https://pizzahub-client-liart-gamma.vercel.app |
+| **Live API (server)** | https://pizzahub-server-one-black.vercel.app |
+| **Client repository** | https://github.com/code-by-nusrat/pizzahub-platform-client |
+| **Server repository** | https://github.com/code-by-nusrat/pizzahub-server |
 
 ## ✨ Key Features
 
-### 👤 Authentication & Authorization
-- Secure email and password authentication using Better Auth.
-- Google OAuth integration.
-- MongoDB adapter for authentication data.
-- Role-based access control for Customers, Vendors, and Admins.
-- JWT/session-token verification for protected Express API routes.
-- Blocked-user access prevention.
-- Protected dashboards and role-specific functionality.
+### Authentication & authorization
+- Email + password sign-up/sign-in with Better Auth.
+- Google OAuth sign-in.
+- Role selection at sign-up (Customer or Vendor); admin accounts cannot be created from public registration.
+- Password policy enforced **on the server** (minimum 6 characters, at least one uppercase and one lowercase letter).
+- Protected dashboards with server-side role checks — changing the URL cannot open another role's dashboard.
+- Blocked users are rejected on protected routes and API calls.
+- Navbar updates immediately after sign-in/sign-out and shows a profile dropdown.
 
-### 🛒 Customer Features
-- Browse approved and available menu items.
-- Explore food items and view detailed information.
-- Search and filter menu items.
-- Add items to the cart and place orders.
-- Complete secure payments through Stripe Checkout.
-- View order information and track order status.
-- Manage personal profile information.
+### Customer
+- Public browse page with search by name, filters by category and location, loading/empty/error states.
+- Item details at `/menu/[id]` (Sign In required), with price, category, description, kitchen and location.
+- Cart with quantity controls, delivery date, delivery address and special instructions.
+- Order placement with duplicate-order protection (one active order per dish per delivery date).
+- Customer dashboard: overview statistics and charts, My Orders, cancel pending orders, profile settings.
 
-### 🏪 Vendor Features
-- Vendor dashboard with business overview and statistics.
-- Manage restaurant/business profile.
-- Add, update, and delete menu items.
-- Upload menu item images using ImgBB.
-- Submit menu items for admin approval.
-- Manage item availability.
-- View and manage customer orders.
-- Monitor subscription plans and active menu item limits.
+### Vendor
+- Vendor dashboard: overview statistics and charts, menu list, add/edit/delete items, availability toggle.
+- Required image upload through **ImgBB** (the API key stays on the server).
+- New items start as `pending` until an admin approves them.
+- Free plan: up to 3 active items; Premium: unlimited.
+- Customer orders with accept/reject actions (pending orders only, once only) and email notification.
+- Subscription page with Stripe Checkout for Premium and payment history.
 
-### 🛡️ Admin Features
-- Admin dashboard for platform management.
-- Manage users and their roles.
-- Manage menu item approval requests.
-- Approve or reject submitted menu items.
-- Monitor platform orders and activities.
-- Restrict blocked users from accessing protected resources.
+### Admin
+- Admin dashboard with platform statistics and charts.
+- Manage users: search, filter by role, block/unblock (admins cannot block themselves).
+- Manage menu items: search, filter, approve (`approved`) or unpublish (`pending`), delete inappropriate items.
+- Transactions: read-only payment records (no editing).
 
-### 💳 Payment Integration
-- Stripe Checkout for secure online payments.
-- Backend-generated checkout sessions.
-- Stripe webhook integration for payment event handling.
-- Server-side payment verification to prevent unauthorized order updates.
+### Payments
+- **Vendors only** use Stripe Checkout to upgrade to Premium.
+- **Customer orders do not use Stripe.** The checkout page shows a plain payment method choice and the order is placed directly; the restaurant confirms it.
+- Premium is activated only after the backend retrieves the Checkout Session from Stripe and confirms `status === "complete"` and `payment_status === "paid"`; the payment must also belong to the signed-in vendor.
+- Stripe secret keys are used only on the server.
+
+### UI/UX
+- Warm pizza palette (cream, tomato red, basil green), consistent headings, equal-height cards and grid layouts.
+- Fully responsive on mobile, tablet and desktop.
+- Framer Motion / Motion animations on homepage sections, with reduced-motion support.
+- Light/dark theme toggle (half-moon icon); dark mode uses a black navbar.
+- Toast notifications for success and error messages — no `alert()`.
+- Custom 404, loading skeletons, unauthorized and blocked pages.
 
 ## 🧰 Tech Stack
 
-| Category | Technologies |
+### Client (`pizzahub-client`)
+| Purpose | Packages |
 |---|---|
-| Frontend | Next.js App Router, React, TypeScript, JavaScript |
-| Styling | Tailwind CSS, ShadCN UI |
-| Animation | Framer Motion / Motion |
-| Authentication | Better Auth, Google OAuth |
-| Database | MongoDB |
-| Backend | Express.js, Node.js |
-| Authorization | JWT / Better Auth session tokens, Role-Based Access Control |
-| Payment | Stripe Checkout, Stripe Webhooks |
-| Image Hosting | ImgBB |
-| Notifications | React Toastify |
-| Icons | Lucide React |
-| Deployment | Vercel / Backend Hosting |
+| Framework | `next` (App Router), `react`, `react-dom`, `typescript` |
+| Styling | `tailwindcss`, `tw-animate-css`, `shadcn`, `class-variance-authority`, `cn` |
+| UI primitives | Radix/Base UI packages, `lucide-react`, `cmdk`, `embla-carousel-react`, `react-day-picker`, `react-resizable-panels`, `input-otp` |
+| Animation | `motion` (Framer Motion) |
+| Charts | `recharts` |
+| Authentication | `better-auth`, `@better-auth/mongo-adapter` |
+| Database | `mongodb` |
+| Payments | `@stripe/stripe-js`, `stripe` |
+| Notifications | `react-toastify` |
+| Utilities | `date-fns`, `shiki` |
 
-## 🔐 Authentication & Middleware Flow
+### Server (`pizzahub-server`)
+| Purpose | Packages |
+|---|---|
+| Runtime | Node.js, `express` |
+| Database | `mongodb` |
+| Payments | `stripe` |
+| Uploads | `multer` |
+| Config | `dotenv`, `cors` |
 
-PizzaHub uses Better Auth for user authentication and an Express middleware system to protect backend resources.
-
-### Authentication Process
-
-1. Users register or sign in using email/password or Google OAuth.
-2. Better Auth validates the user's credentials.
-3. The authenticated session is stored using the MongoDB adapter.
-4. The frontend retrieves the session token.
-5. Protected API requests send the token through the Authorization header.
-
-```http
-Authorization: Bearer YOUR_SESSION_TOKEN
-```
-
-### Middleware Implementation
-
-The backend uses two main middleware functions:
-
-**1. `verifyToken`**
-
-- Checks whether the Authorization header exists.
-- Validates the Bearer token.
-- Verifies the token against the Better Auth session or configured JWT verification mechanism.
-- Retrieves the authenticated user from MongoDB.
-- Rejects invalid, expired, or blocked-user sessions.
-- Attaches authenticated user information to `req.user`.
-
-**2. `requireRole(...roles)`**
-
-- Checks the authenticated user's role.
-- Allows access only when the user's role matches one of the permitted roles.
-- Returns a forbidden response when the role is not authorized.
-
-### Middleware Execution Order
-
-```js
-app.post(
-  "/menu",
-  verifyToken,
-  requireRole("vendor"),
-  addMenuItem
-)
-```
-
-The request follows this flow:
+## 🏗️ Architecture
 
 ```text
-Client Request
-     |
-     v
-Authorization Header
-     |
-     v
-verifyToken
-     |
-     v
-Validate Session Token
-     |
-     v
-Check User Status
-     |
-     v
-Attach User to req.user
-     |
-     v
-requireRole("vendor")
-     |
-     v
-Execute Protected Controller
-     |
-     v
-Send Response
+Browser (Next.js App Router)
+   │  Better Auth session cookie + Bearer session token
+   ▼
+Next.js server components / API routes
+   │  Authorization: Bearer <session token>
+   ▼
+Express API (verifyToken → requireRole → handler)
+   │
+   ├── MongoDB (users, menu, orders, transactions, profiles)
+   ├── Stripe (vendor subscriptions)
+   ├── ImgBB (dish images)
+   └── Resend (order status emails, optional)
 ```
 
-### Role-Based Access Examples
-
-| Resource | Customer | Vendor | Admin |
-|---|---|---|---|
-| Browse approved menu | ✅ | ✅ | ✅ |
-| Place orders | ✅ | ❌ | ❌ |
-| Manage own menu | ❌ | ✅ | ❌ |
-| Manage customer orders | ❌ | ✅ | ❌ |
-| Approve menu items | ❌ | ❌ | ✅ |
-| Manage users | ❌ | ❌ | ✅ |
-
-*Access is enforced by backend middleware, not just frontend dashboard visibility.*
-
-## 🔎 API Query Parameters & Implementation
-
-PizzaHub uses query parameters to filter and retrieve relevant data from the backend without creating separate endpoints for every filter combination.
-
-### Menu API
-
-**Endpoint:**
-
-```http
-GET /menu?approvalStatus=all&businessName=Pizza House
-```
-
-Implementation:
-- `approvalStatus` controls which approval statuses are returned.
-- `businessName` filters menu items by restaurant.
-- Vendor requests are authenticated and restricted to the vendor's own menu items.
-- Admin requests can access menu records according to their permissions.
-
-Example:
-
-```js
-app.get(
-  "/menu",
-  verifyToken,
-  requireRole("vendor", "admin"),
-  async (req, res) => {
-    const { approvalStatus, businessName } = req.query
-
-    const query = {}
-
-    if (approvalStatus !== "all") {
-      query.approvalStatus = approvalStatus || "approved"
-    }
-
-    if (req.user.role === "vendor") {
-      query.vendorEmail = req.user.email
-    }
-
-    if (businessName) {
-      query.businessName = businessName
-    }
-
-    const items = await menuCollection.find(query).toArray()
-
-    res.send(items)
-  }
-)
-```
-
-*The example illustrates the filtering approach; the actual backend should retain its existing ownership and role checks.*
-
-### Public Menu API
-
-```http
-GET /browse-menu?approvalStatus=approved
-```
-
-- Publicly accessible without authentication.
-- Returns approved menu items.
-- Used by customers to explore available food items.
-
-### Subscription API
-
-```http
-GET /subscription/:email
-```
-
-- Retrieves subscription information.
-- Provides premium status and active menu item limits.
-- Used to determine whether vendors can publish additional menu items.
-
-### Order API
-
-```http
-GET /vendor/orders
-```
-
-- Requires authentication.
-- Vendor identity is determined from the verified session.
-- Returns orders associated with the authenticated vendor.
-
-## 💳 Stripe Payment Workflow
-
-PizzaHub integrates Stripe Checkout for secure online payments.
-
-1. Customer initiates checkout.
-2. Frontend sends the order/payment request to the backend.
-3. Backend validates the request and creates a Stripe Checkout Session.
-4. Customer is redirected to Stripe's secure checkout page.
-5. Stripe processes the payment.
-6. Stripe sends a webhook event to the backend.
-7. Backend verifies the webhook signature.
-8. The payment/order status is updated based on the verified event.
-
-**Security:** Payment status should be updated from verified Stripe webhook events rather than trusting frontend success redirects.
-
-## 🖼️ Image Upload – ImgBB
-
-ImgBB is used to host menu item images.
-
-Implementation:
-1. Vendor selects an image.
-2. Frontend sends the image using `FormData`.
-3. Backend or upload API processes the image.
-4. ImgBB returns a hosted image URL.
-5. The image URL is saved with the menu item in MongoDB.
+- Better Auth owns the auth collections and issues the session token.
+- The Next.js `/api/imgbb` route forwards uploads to ImgBB so the ImgBB key never reaches the browser.
+- The backend derives the user and role from the verified token; it never trusts IDs or roles sent by the client.
+- Unauthorized requests return `401`; forbidden role requests return `403`.
 
 ## 🗄️ Database Collections
 
-PizzaHub uses MongoDB to store application and authentication data.
+Better Auth manages `user`, `session`, `account` and `verification`.
 
-Main collections include:
+Business collections:
 
-- `user` – User account information and roles.
-- `session` – Authentication session records.
-- `menu` – Restaurant menu items and approval information.
-- `customerProfile` – Customer profile information.
-- `vendorProfile` – Vendor business information.
-- `orders` – Customer orders and payment information.
-- `subscriptions` – Vendor subscription information.
+| Collection | Contents |
+|---|---|
+| `menuData` | `vendorId`, `name`, `category`, `description`, `price`, `location`, `image`, `businessName`, `approvalStatus`, `isAvailable` |
+| `orders` | `itemId`, `vendorId`, `customerId`, `deliveryDate`, `deliveryAddress`, `message`, `status` |
+| `transactions` | `vendorId`, `plan`, `amount`, `currency`, `sessionId`, `status` |
+| `vendorProfile` | Vendor business details |
+| `customerProfile` | Customer contact details |
 
-*Collection names should be adjusted if your actual MongoDB database uses different names.*
+## ⚙️ Installation & Local Setup
 
-## ⚙️ Installation & Setup
-
-### 1. Clone the repositories
+### 1. Clone both repositories
 
 ```bash
-git clone YOUR_FRONTEND_REPOSITORY_URL
-git clone YOUR_BACKEND_REPOSITORY_URL
+git clone https://github.com/code-by-nusrat/pizzahub-platform-client.git
+git clone https://github.com/code-by-nusrat/pizzahub-server.git
 ```
 
 ### 2. Install dependencies
 
-Frontend:
-
 ```bash
-cd pizzahub-client
+cd pizzahub-platform-client
+npm install
+
+cd ../pizzahub-server
 npm install
 ```
 
-Backend:
+### 3. Environment variables
 
-```bash
-cd pizzahub-server
-npm install
-```
+Create `.env` in the client (see `.env.example`) and in the server. Never commit real secrets.
 
-### 3. Configure environment variables
-
-Frontend `.env.local`:
+**Client**
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+# Better Auth
+BETTER_AUTH_SECRET=your_better_auth_secret
 BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_DB_URI=your_mongodb_connection_string
+
+# Express API
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# ImgBB (used only by the server-side /api/imgbb route)
+IMGBB_API_KEY=your_imgbb_api_key
+
+# Stripe (vendor subscriptions)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+
+# Optional: order status emails
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM=PizzaHub <onboarding@resend.dev>
 ```
 
-Backend `.env`:
+**Server**
 
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-DB_NAME=your_database_name
-
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-
-IMGBB_API_KEY=your_imgbb_api_key
-
+DB_USER=your_mongodb_user
+DB_PASSWORD=your_mongodb_password
 CLIENT_URL=http://localhost:3000
+STRIPE_SECRET_KEY=your_stripe_secret_key
+# Optional: verify Better Auth JWTs instead of session tokens
+# JWKS_URL=http://localhost:3000/api/auth/jwks
 ```
 
-Add any additional Better Auth secrets and Google OAuth credentials required by your authentication configuration. Never commit real secrets to GitHub.
+### 4. Run locally
 
-### 4. Run the application
-
-Start the backend:
+Terminal 1 — API:
 
 ```bash
-npm run dev
+cd pizzahub-server
+npm run dev        # http://localhost:5000
 ```
 
-Start the frontend in another terminal:
+Terminal 2 — client:
 
 ```bash
-npm run dev
+cd pizzahub-platform-client
+npm run dev        # http://localhost:3000
 ```
 
-Frontend:
+Other client scripts:
 
-```text
-http://localhost:3000
+```bash
+npm run build      # production build
+npm start          # serve the production build
+npm run lint       # ESLint
 ```
 
-Backend:
+## 🔐 API Protection Summary
 
-```text
-http://localhost:5000
-```
+| Endpoint | Access |
+|---|---|
+| `GET /browse-menu`, `GET /browse-menu/:id` | Public (approved + available items only) |
+| `POST /orders`, `GET /orders`, `PATCH /orders/:id/cancel` | Customer only |
+| `GET /vendor/orders`, `PATCH /vendor/orders/:id` | Vendor only, own orders |
+| `GET /menu` | Vendor (own items) / Admin |
+| `POST /menu`, `PUT /menu/:id`, `DELETE /menu/:id` | Vendor (own items) / Admin |
+| `PATCH /menu/:id/moderation` | Admin only (`approved` or `pending`) |
+| `GET /admin/stats`, user management | Admin only |
+| `GET /transactions` | Admin / Vendor (own records) |
+| `GET /subscription/:email` | Vendor (own plan) / Admin |
+| `POST /payments/checkout-verify` | Vendor only, own payment |
 
-## 🚀 Future Improvements
+## 📧 Order Emails (optional)
 
-- Real-time order status notifications.
-- Advanced restaurant search and location-based filtering.
-- Customer reviews and ratings.
-- Discount coupons and promotional offers.
-- Improved analytics for vendors and administrators.
-- Enhanced mobile shopping experience.
+When a vendor accepts or rejects an order, the Next.js server action can email the customer through the Resend HTTP API. If `RESEND_API_KEY` is not set, the email step is skipped without changing the order result. A verified Resend domain is required to deliver to arbitrary addresses; the default `onboarding@resend.dev` sender only reaches the Resend account owner.
+
+## 🚀 Deployment Notes
+
+1. Deploy the Express API and set `DB_USER`, `DB_PASSWORD`, `STRIPE_SECRET_KEY`, `CLIENT_URL` (comma-separated allowed origins) and `PORT`.
+2. Deploy the Next.js client and set all client variables from `.env.example`.
+3. Add the production client URL to `BETTER_AUTH_URL`, Better Auth `trustedOrigins`, Google OAuth redirect URIs and Stripe success/cancel URLs.
+4. Verify that reloading any private route keeps the user signed in (session cookie + server-side session read).
 
 ## 👩‍💻 Developer
 
-Developed as a full-stack web development project to demonstrate modern frontend development, backend API design, authentication, authorization, database management, and payment integration.
+Built as a full-stack web development project to demonstrate modern frontend development, REST API design, authentication and authorization, MongoDB data modelling and Stripe subscription billing.
 
-**PizzaHub – Fresh Pizza, Happy Moments! 🍕**
+**PizzaHub — Fresh Pizza, Happy Moments! 🍕**
