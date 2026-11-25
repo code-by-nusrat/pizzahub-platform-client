@@ -118,10 +118,10 @@ const Footer = () => {
 
             {/* Social media */}
             <div className="mt-4 flex items-center gap-2">
-              {SOCIALS.map(({ name, href, Icon }) => (
+              {SOCIALS.map(({ name, Icon }) => (
                 <a
                   key={name}
-                  href={href}
+                  
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={name}
